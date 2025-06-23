@@ -18,14 +18,21 @@ import {
   Zap,
   Brain,
   Scan,
-  Globe
+  Globe,
+  Barcode,
+  Info,
+  Heart
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { QROptions, generateQRCode } from '@/utils/qrGenerator';
 import { QRInput } from './QRInput';
 import { AdvancedCustomization } from './AdvancedCustomization';
 import { AIQRPreview } from './AIQRPreview';
 import { SmartQRHistory } from './SmartQRHistory';
 import { QRAnalytics } from './QRAnalytics';
+import { CustomizableCard } from './CustomizableCard';
+import { BarcodeConverter } from './BarcodeConverter';
+import { DonationCard } from './DonationCard';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from 'next-themes';
 
@@ -291,12 +298,18 @@ export const EnhancedQRGenerator: React.FC = () => {
       variants={containerVariants}
     >
       <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
-        {/* Header with Theme Toggle */}
+        {/* Header with Navigation */}
         <motion.div 
           className="mb-8 text-center relative"
           variants={itemVariants}
         >
           <div className="absolute top-0 right-0 flex items-center gap-4">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/about" className="flex items-center gap-2">
+                <Info className="w-4 h-4" />
+                About
+              </Link>
+            </Button>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Dark Mode</span>
               <Switch 
@@ -307,14 +320,19 @@ export const EnhancedQRGenerator: React.FC = () => {
             </div>
           </div>
           
-          <motion.h1 
-            className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-500 bg-clip-text text-transparent mb-4"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.8 }}
-          >
-            QR Studio AI Pro
-          </motion.h1>
+          <motion.div className="flex items-center justify-center gap-3 mb-4">
+            <motion.h1 
+              className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-500 bg-clip-text text-transparent"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.8 }}
+            >
+              anwe.sh
+            </motion.h1>
+            <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+              Free Forever
+            </Badge>
+          </motion.div>
           
           <motion.p 
             className="text-lg md:text-xl text-muted-foreground mb-6"
@@ -348,150 +366,214 @@ export const EnhancedQRGenerator: React.FC = () => {
           </motion.div>
         </motion.div>
 
-        {/* Revolutionary Features Grid */}
-        <motion.div 
-          className="mb-8"
-          variants={itemVariants}
-        >
-          <h2 className="text-2xl font-bold mb-4 text-center">Revolutionary Features</h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {revolutionaryFeatures.map((feature) => (
-              <motion.div
-                key={feature.id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button
-                  variant={activeFeatures.includes(feature.id) ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => toggleFeature(feature.id)}
-                  className={`h-auto p-3 w-full ${
-                    activeFeatures.includes(feature.id) 
-                      ? `bg-gradient-to-r ${feature.gradient} text-white border-0` 
-                      : ''
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-1">
-                    <feature.icon className="w-4 h-4" />
-                    <span className="text-xs text-center leading-tight">
-                      {feature.title.split(' ').slice(0, 2).join(' ')}
-                    </span>
-                  </div>
-                </Button>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
+        {/* Main Tabs */}
+        <Tabs defaultValue="generator" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-3">
+            <TabsTrigger value="generator" className="flex items-center gap-2">
+              <QrCode className="w-4 h-4" />
+              QR Generator
+            </TabsTrigger>
+            <TabsTrigger value="converter" className="flex items-center gap-2">
+              <Barcode className="w-4 h-4" />
+              Barcode Converter
+            </TabsTrigger>
+            <TabsTrigger value="gallery" className="flex items-center gap-2">
+              <Scan className="w-4 h-4" />
+              Gallery
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Input Section */}
-          <motion.div 
-            className="lg:col-span-1 space-y-6"
-            variants={itemVariants}
-          >
-            <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+          <TabsContent value="generator" className="space-y-6">
+            {/* Revolutionary Features Grid */}
+            <motion.div 
+              className="mb-8"
+              variants={itemVariants}
+            >
+              <h2 className="text-2xl font-bold mb-4 text-center">Revolutionary Features</h2>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {revolutionaryFeatures.map((feature) => (
                   <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    key={feature.id}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    <QrCode className="w-5 h-5 text-purple-500" />
+                    <Button
+                      variant={activeFeatures.includes(feature.id) ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => toggleFeature(feature.id)}
+                      className={`h-auto p-3 w-full ${
+                        activeFeatures.includes(feature.id) 
+                          ? `bg-gradient-to-r ${feature.gradient} text-white border-0` 
+                          : ''
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-1">
+                        <feature.icon className="w-4 h-4" />
+                        <span className="text-xs text-center leading-tight">
+                          {feature.title.split(' ').slice(0, 2).join(' ')}
+                        </span>
+                      </div>
+                    </Button>
                   </motion.div>
-                  Content Input
-                  {isAIMode && (
-                    <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-                      AI Enhanced
-                    </Badge>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <QRInput onGenerate={generateEnhancedQR} isLoading={isGenerating} />
-              </CardContent>
-            </Card>
+                ))}
+              </div>
+            </motion.div>
 
-            <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Palette className="w-5 h-5 text-blue-500" />
-                  Advanced Customization
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AdvancedCustomization
-                  options={customization}
-                  onChange={setCustomization}
-                  onRegenerate={() => qrData && generateEnhancedQR(qrData.content, qrData.type)}
-                  hasQRCode={!!qrData}
-                  aiMode={isAIMode}
-                  activeFeatures={activeFeatures}
-                />
-              </CardContent>
-            </Card>
-          </motion.div>
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Input Section */}
+              <motion.div 
+                className="lg:col-span-1 space-y-6"
+                variants={itemVariants}
+              >
+                <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                      >
+                        <QrCode className="w-5 h-5 text-purple-500" />
+                      </motion.div>
+                      Content Input
+                      {isAIMode && (
+                        <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                          AI Enhanced
+                        </Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <QRInput onGenerate={generateEnhancedQR} isLoading={isGenerating} />
+                  </CardContent>
+                </Card>
 
-          {/* Preview Section */}
-          <motion.div 
-            className="lg:col-span-1"
-            variants={itemVariants}
-          >
-            <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50 h-fit">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="w-5 h-5 text-green-500" />
-                  AI Preview & Testing
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AIQRPreview qrData={qrData} isGenerating={isGenerating} />
-              </CardContent>
-            </Card>
-          </motion.div>
+                <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Palette className="w-5 h-5 text-blue-500" />
+                      Advanced Customization
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <AdvancedCustomization
+                      options={customization}
+                      onChange={setCustomization}
+                      onRegenerate={() => qrData && generateEnhancedQR(qrData.content, qrData.type)}
+                      hasQRCode={!!qrData}
+                      aiMode={isAIMode}
+                      activeFeatures={activeFeatures}
+                    />
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-          {/* Analytics & History Section */}
-          <motion.div 
-            className="lg:col-span-1 space-y-6"
-            variants={itemVariants}
-          >
-            <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Scan className="w-5 h-5 text-orange-500" />
-                  Smart Analytics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <QRAnalytics qrData={qrData} />
-              </CardContent>
-            </Card>
+              {/* Preview Section */}
+              <motion.div 
+                className="lg:col-span-2 space-y-6"
+                variants={itemVariants}
+              >
+                <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50 h-fit">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Eye className="w-5 h-5 text-green-500" />
+                      AI Preview & Testing
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <AIQRPreview qrData={qrData} isGenerating={isGenerating} />
+                  </CardContent>
+                </Card>
 
-            <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-teal-500" />
-                  Smart History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                {/* Customizable Card Preview */}
+                {qrData && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Sparkles className="w-5 h-5 text-purple-500" />
+                          Beautiful Card Preview
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <CustomizableCard qrData={qrData} />
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </motion.div>
+
+              {/* Analytics & History Section */}
+              <motion.div 
+                className="lg:col-span-1 space-y-6"
+                variants={itemVariants}
+              >
+                <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Scan className="w-5 h-5 text-orange-500" />
+                      Smart Analytics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <QRAnalytics qrData={qrData} />
+                  </CardContent>
+                </Card>
+
+                <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Globe className="w-5 h-5 text-teal-500" />
+                      Smart History
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <SmartQRHistory 
+                      history={history} 
+                      onLoad={(data) => {
+                        setQrData(data);
+                        setCustomization(data.customization);
+                      }} 
+                    />
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="converter">
+            <BarcodeConverter />
+          </TabsContent>
+
+          <TabsContent value="gallery">
+            <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50 p-8">
+              <CardContent className="text-center space-y-4">
+                <Scan className="w-16 h-16 mx-auto text-muted-foreground" />
+                <h3 className="text-2xl font-bold">QR Gallery</h3>
+                <p className="text-muted-foreground">
+                  View and manage all your created QR codes in one place.
+                </p>
                 <SmartQRHistory 
                   history={history} 
                   onLoad={(data) => {
                     setQrData(data);
                     setCustomization(data.customization);
                   }} 
+                  expanded={true}
                 />
               </CardContent>
             </Card>
-          </motion.div>
-        </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Floating Action Button for Mobile */}
         <AnimatePresence>
           {qrData && (
             <motion.div
-              className="fixed bottom-6 right-6 z-50 md:hidden"
+              className="fixed bottom-6 left-6 z-50 md:hidden"
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               exit={{ scale: 0, rotate: 180 }}
@@ -502,11 +584,10 @@ export const EnhancedQRGenerator: React.FC = () => {
                 size="lg"
                 className="rounded-full w-14 h-14 bg-gradient-to-r from-purple-500 to-pink-500 shadow-2xl"
                 onClick={() => {
-                  // Quick share functionality
                   if (navigator.share) {
                     navigator.share({
                       title: 'My QR Code',
-                      text: 'Check out this QR code!',
+                      text: 'Check out this QR code from anwe.sh!',
                     });
                   }
                 }}
@@ -516,6 +597,9 @@ export const EnhancedQRGenerator: React.FC = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Donation Card */}
+        <DonationCard />
       </div>
     </motion.div>
   );
