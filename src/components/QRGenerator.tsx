@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -125,7 +124,7 @@ export const QRGenerator: React.FC = () => {
           <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <QRCode className="w-5 h-5" />
+                <QrCode className="w-5 h-5" />
                 Content Input
               </CardTitle>
             </CardHeader>
