@@ -33,6 +33,7 @@ export const BarcodeConverter: React.FC = () => {
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        await videoRef.current.play(); // Ensure video plays
         streamRef.current = stream;
         setIsScanning(true);
         
@@ -55,6 +56,9 @@ export const BarcodeConverter: React.FC = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
     setIsScanning(false);
   };
@@ -190,18 +194,19 @@ export const BarcodeConverter: React.FC = () => {
               )}
             </div>
 
-            {/* Camera View */}
+            {/* Camera View - Fixed Display */}
             {isScanning && (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="relative rounded-lg overflow-hidden bg-black"
+                className="relative rounded-lg overflow-hidden bg-black aspect-video"
               >
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
-                  className="w-full h-48 sm:h-64 object-cover"
+                  muted
+                  className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 border-2 border-dashed border-white/50 m-4 rounded-lg flex items-center justify-center">
                   <div className="text-white text-center">
