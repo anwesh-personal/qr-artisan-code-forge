@@ -219,7 +219,7 @@ export const EnhancedQRGenerator: React.FC = () => {
     if (featureId === 'batch-processing') {
       setCurrentTab('batch');
     } else if (featureId === 'picture-to-qr') {
-      setCurrentTab('picture');
+      window.location.href = '/picture-qr';
     } else if (featureId === 'multiple-formats') {
       toast({
         title: "Multiple Formats Enabled",
@@ -263,6 +263,12 @@ export const EnhancedQRGenerator: React.FC = () => {
               <Link to="/about" className="flex items-center gap-2">
                 <Info className="w-4 h-4" />
                 About
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/picture-qr" className="flex items-center gap-2">
+                <Image className="w-4 h-4" />
+                Picture QR
               </Link>
             </Button>
             <div className="flex items-center gap-2">
@@ -335,7 +341,7 @@ export const EnhancedQRGenerator: React.FC = () => {
 
         {/* Main Tabs */}
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-4">
             <TabsTrigger value="generator" className="flex items-center gap-2">
               <QrCode className="w-4 h-4" />
               Generator
@@ -343,10 +349,6 @@ export const EnhancedQRGenerator: React.FC = () => {
             <TabsTrigger value="batch" className="flex items-center gap-2">
               <Layers className="w-4 h-4" />
               Batch
-            </TabsTrigger>
-            <TabsTrigger value="picture" className="flex items-center gap-2">
-              <Image className="w-4 h-4" />
-              Picture
             </TabsTrigger>
             <TabsTrigger value="converter" className="flex items-center gap-2">
               <Barcode className="w-4 h-4" />
@@ -483,10 +485,6 @@ export const EnhancedQRGenerator: React.FC = () => {
             }} />
           </TabsContent>
 
-          <TabsContent value="picture">
-            <PictureToQR onGenerate={generateEnhancedQR} customization={customization} />
-          </TabsContent>
-
           <TabsContent value="converter">
             <BarcodeConverter />
           </TabsContent>
@@ -526,7 +524,7 @@ export const EnhancedQRGenerator: React.FC = () => {
               Powered by <a href="https://anwe.sh" target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:underline font-medium">anwe.sh</a>
             </p>
             <p className="text-xs text-muted-foreground">
-              © 2024 Quantum QR. Free forever, no limits, no watermarks.
+              © 2025 Quantum QR. Free forever, no limits, no watermarks.
             </p>
           </div>
         </footer>
