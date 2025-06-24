@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -89,7 +88,7 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
           throw new Error('Camera not supported');
         }
         
-        stream = await new Promise((resolve, reject) => {
+        stream = await new Promise<MediaStream>((resolve, reject) => {
           getUserMedia.call(navigator, constraints, resolve, reject);
         });
       }
@@ -211,7 +210,7 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
   };
 
   const blendImageWithQR = (imageDataUrl: string, qrDataUrl: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
       console.log('Starting image blending process...');
       
       const canvas = document.createElement('canvas');

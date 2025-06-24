@@ -18,7 +18,6 @@ import {
   Scan,
   CheckCircle,
   AlertCircle,
-  Brain,
   Sparkles
 } from 'lucide-react';
 import { EnhancedQRData } from './EnhancedQRGenerator';
@@ -44,7 +43,7 @@ export const AIQRPreview: React.FC<AIQRPreviewProps> = ({ qrData, isGenerating }
 
   const analyzeScanQuality = async () => {
     setIsAnalyzing(true);
-    // Simulate AI analysis
+    // Simulate analysis
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Calculate quality based on various factors
@@ -52,7 +51,6 @@ export const AIQRPreview: React.FC<AIQRPreviewProps> = ({ qrData, isGenerating }
     if (qrData?.customization.errorCorrectionLevel === 'H') quality += 20;
     if (qrData?.customization.errorCorrectionLevel === 'Q') quality += 10;
     if (qrData?.customization.margin >= 4) quality += 10;
-    if (qrData?.aiEnhanced) quality += 15;
     
     setScanQuality(Math.min(quality, 100));
     setIsAnalyzing(false);
@@ -61,12 +59,12 @@ export const AIQRPreview: React.FC<AIQRPreviewProps> = ({ qrData, isGenerating }
   const handleDownload = (format: 'png' | 'jpg' | 'svg' = 'png') => {
     if (!qrData?.qrCode) return;
 
-    const filename = `qrcode-ai-${Date.now()}.${format}`;
+    const filename = `qrcode-${Date.now()}.${format}`;
     downloadQRCode(qrData.qrCode, filename);
     
     toast({
       title: "✨ Downloaded!",
-      description: `AI-enhanced QR code saved as ${filename}`,
+      description: `QR code saved as ${filename}`,
     });
   };
 
@@ -103,8 +101,8 @@ export const AIQRPreview: React.FC<AIQRPreviewProps> = ({ qrData, isGenerating }
         const file = new File([blob], 'qrcode.png', { type: 'image/png' });
         
         await navigator.share({
-          title: 'AI-Enhanced QR Code',
-          text: 'Check out this stunning QR code!',
+          title: 'QR Code',
+          text: 'Check out this QR code!',
           files: [file]
         });
       } catch (error) {
@@ -147,20 +145,13 @@ export const AIQRPreview: React.FC<AIQRPreviewProps> = ({ qrData, isGenerating }
               animate={{ rotate: 360 }}
               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
             >
-              <Brain className="w-16 h-16 text-purple-500" />
+              <Sparkles className="w-16 h-16 text-purple-500" />
             </motion.div>
           </motion.div>
           
           <div>
-            <h3 className="text-xl font-semibold mb-2">AI is Crafting Your QR Code</h3>
-            <p className="text-muted-foreground">Analyzing content and optimizing design...</p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Sparkles className="w-4 h-4" />
-              <span>Applying AI enhancements</span>
-            </div>
+            <h3 className="text-xl font-semibold mb-2">Generating Your QR Code</h3>
+            <p className="text-muted-foreground">Creating your custom QR code...</p>
           </div>
         </div>
       </Card>
@@ -178,8 +169,8 @@ export const AIQRPreview: React.FC<AIQRPreviewProps> = ({ qrData, isGenerating }
             <Eye className="w-16 h-16 mx-auto opacity-20" />
           </motion.div>
           <div>
-            <h3 className="text-xl font-medium mb-2">AI Preview Ready</h3>
-            <p className="text-sm">Generate a QR code to see AI-powered preview and testing</p>
+            <h3 className="text-xl font-medium mb-2">Preview Ready</h3>
+            <p className="text-sm">Generate a QR code to see preview and testing options</p>
           </div>
         </div>
       </Card>
@@ -188,23 +179,6 @@ export const AIQRPreview: React.FC<AIQRPreviewProps> = ({ qrData, isGenerating }
 
   return (
     <div className="space-y-6">
-      {/* AI Enhancement Badge */}
-      {qrData.aiEnhanced && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex items-center justify-center gap-2 p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800"
-        >
-          <Brain className="w-4 h-4 text-purple-500" />
-          <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
-            AI Enhanced Design
-          </span>
-          <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-            Pro
-          </Badge>
-        </motion.div>
-      )}
-
       {/* Preview Mode Toggle */}
       <div className="flex justify-center">
         <Tabs value={previewMode} onValueChange={(value: 'desktop' | 'mobile') => setPreviewMode(value)}>
@@ -235,22 +209,12 @@ export const AIQRPreview: React.FC<AIQRPreviewProps> = ({ qrData, isGenerating }
             >
               <motion.img 
                 src={qrData.qrCode} 
-                alt="AI-Enhanced QR Code"
+                alt="QR Code"
                 className="w-48 h-48 mx-auto rounded-2xl shadow-2xl"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5 }}
               />
-              
-              {/* Smart Features Indicators */}
-              <div className="absolute -top-2 -right-2 space-y-1">
-                {qrData.smartFeatures.brandAlignment && (
-                  <Badge className="bg-blue-500 text-white">Brand</Badge>
-                )}
-                {qrData.smartFeatures.contextAware && (
-                  <Badge className="bg-green-500 text-white">Smart</Badge>
-                )}
-              </div>
               
               <Badge className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-500 to-pink-500 text-white">
                 {qrData.type.toUpperCase()}
@@ -277,7 +241,7 @@ export const AIQRPreview: React.FC<AIQRPreviewProps> = ({ qrData, isGenerating }
         </Card>
       </motion.div>
 
-      {/* AI Quality Analysis */}
+      {/* Quality Analysis */}
       <Card className="p-4">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -291,7 +255,7 @@ export const AIQRPreview: React.FC<AIQRPreviewProps> = ({ qrData, isGenerating }
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                 >
-                  <Brain className="w-4 h-4 text-purple-500" />
+                  <Sparkles className="w-4 h-4 text-purple-500" />
                 </motion.div>
                 <span className="text-sm text-muted-foreground">Analyzing...</span>
               </div>

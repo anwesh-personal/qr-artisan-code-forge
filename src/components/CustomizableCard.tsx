@@ -99,7 +99,7 @@ export const CustomizableCard: React.FC<CustomizableCardProps> = ({
             </div>
           </div>
           <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
-            {qrData.aiEnhanced ? 'AI Enhanced' : 'Standard'}
+            Premium
           </Badge>
         </div>
 

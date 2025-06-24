@@ -49,7 +49,7 @@ export const QRAnalytics: React.FC<QRAnalyticsProps> = ({ qrData }) => {
   };
 
   const conversionRate = analytics.scans > 0 ? (analytics.uniqueUsers / analytics.scans * 100) : 0;
-  const engagementScore = Math.min(95, 60 + (analytics.scans * 0.5) + (qrData.aiEnhanced ? 20 : 0));
+  const engagementScore = Math.min(95, 60 + (analytics.scans * 0.5));
 
   return (
     <div className="space-y-4">
@@ -113,12 +113,6 @@ export const QRAnalytics: React.FC<QRAnalyticsProps> = ({ qrData }) => {
               <Progress value={conversionRate} className="h-2" />
             </div>
           </div>
-
-          {qrData.aiEnhanced && (
-            <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded text-xs text-purple-700 dark:text-purple-300">
-              🚀 AI enhancement boosted performance by 23% on average
-            </div>
-          )}
         </Card>
       </motion.div>
 
@@ -206,26 +200,6 @@ export const QRAnalytics: React.FC<QRAnalyticsProps> = ({ qrData }) => {
           </div>
         </Card>
       </motion.div>
-
-      {/* AI Recommendations */}
-      {qrData.aiEnhanced && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-        >
-          <Card className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-800">
-            <h4 className="font-medium text-purple-700 dark:text-purple-300 mb-2">
-              🤖 AI Recommendations
-            </h4>
-            <div className="text-sm text-purple-600 dark:text-purple-400 space-y-1">
-              <p>• Optimize for mobile scanning (78% of users)</p>
-              <p>• Consider A/B testing different color schemes</p>
-              <p>• Best performance during afternoon hours</p>
-            </div>
-          </Card>
-        </motion.div>
-      )}
     </div>
   );
 };

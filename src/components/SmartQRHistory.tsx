@@ -134,12 +134,10 @@ export const SmartQRHistory: React.FC<SmartQRHistoryProps> = ({
                         <Badge variant="secondary" className="text-xs">
                           {item.type.toUpperCase()}
                         </Badge>
-                        {item.aiEnhanced && (
-                          <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs">
-                            <Star className="w-3 h-3 mr-1" />
-                            AI
-                          </Badge>
-                        )}
+                        <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs">
+                          <Star className="w-3 h-3 mr-1" />
+                          Premium
+                        </Badge>
                       </div>
                       <p className="text-sm font-medium truncate">
                         {item.content.length > 40 
