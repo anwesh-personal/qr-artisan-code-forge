@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,7 +48,7 @@ export interface EnhancedQRData {
     patternStyle?: 'square' | 'circle' | 'rounded';
     backgroundColor?: string;
     foregroundColor?: string;
-    shape?: 'square' | 'circle' | 'rounded-square';
+    shape?: 'square' | 'circle' | 'rounded-square' | 'heart' | 'star' | 'diamond' | 'hexagon' | 'octagon' | 'triangle' | 'cross' | 'arrow' | 'shield' | 'leaf' | 'flower' | 'spiral';
     texture?: string;
     animation?: 'none' | 'pulse' | 'glow' | 'breathe';
   };
@@ -105,11 +104,11 @@ const workingFeatures = [
     working: true
   },
   {
-    id: 'live-preview',
-    title: 'Live Preview',
-    description: 'See changes in real-time as you customize your QR code design',
-    icon: Eye,
-    gradient: 'from-teal-500 to-blue-500',
+    id: 'qr-shapes',
+    title: 'QR Shapes',
+    description: 'Choose from 15 different QR code shapes and styles',
+    icon: Settings,
+    gradient: 'from-pink-500 to-rose-500',
     working: true
   }
 ];
@@ -217,7 +216,6 @@ export const EnhancedQRGenerator: React.FC = () => {
         : [...prev, featureId]
     );
 
-    // Handle specific feature actions
     if (featureId === 'batch-processing') {
       setCurrentTab('batch');
     } else if (featureId === 'picture-to-qr') {

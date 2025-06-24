@@ -17,7 +17,8 @@ import {
   Eye, 
   Download,
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  StopCircle
 } from 'lucide-react';
 import { QROptions, generateQRCode } from '@/utils/qrGenerator';
 import { useToast } from '@/hooks/use-toast';
@@ -65,19 +66,55 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user' } 
-      });
+      const constraints = {
+        video: {
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+
+      // Try different camera access methods for cross-platform compatibility
+      let stream: MediaStream;
+      
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } else {
+        // Fallback for older browsers
+        const getUserMedia = (navigator as any).getUserMedia || 
+                            (navigator as any).webkitGetUserMedia || 
+                            (navigator as any).mozGetUserMedia;
+        
+        if (!getUserMedia) {
+          throw new Error('Camera not supported');
+        }
+        
+        stream = await new Promise((resolve, reject) => {
+          getUserMedia.call(navigator, constraints, resolve, reject);
+        });
+      }
+      
       setCameraStream(stream);
       setShowCamera(true);
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch(error => {
+            console.error('Error playing video:', error);
+          });
+        };
       }
+
+      toast({
+        title: "📷 Camera Ready!",
+        description: "Position yourself in the camera view and tap capture",
+      });
     } catch (error) {
+      console.error('Camera access error:', error);
       toast({
         title: "Camera Error",
-        description: "Unable to access camera. Please check permissions.",
+        description: "Unable to access camera. Please check permissions or try uploading an image instead.",
         variant: "destructive",
       });
     }
@@ -89,15 +126,32 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
 
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      if (ctx) {
-        ctx.drawImage(video, 0, 0);
-        const imageData = canvas.toDataURL('image/png');
-        setSelectedImage(imageData);
-        stopCamera();
+      if (!ctx) {
+        toast({
+          title: "Error",
+          description: "Canvas not supported",
+          variant: "destructive",
+        });
+        return;
       }
+
+      // Set canvas dimensions to match video
+      canvas.width = video.videoWidth || video.clientWidth;
+      canvas.height = video.videoHeight || video.clientHeight;
+
+      // Draw the current frame
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // Convert to data URL
+      const imageData = canvas.toDataURL('image/png');
+      setSelectedImage(imageData);
+      
+      stopCamera();
+      
+      toast({
+        title: "📸 Photo Captured!",
+        description: "Photo captured successfully. Now add your QR content below.",
+      });
     }
   };
 
@@ -105,6 +159,9 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
     if (cameraStream) {
       cameraStream.getTracks().forEach(track => track.stop());
       setCameraStream(null);
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
     setShowCamera(false);
   };
@@ -122,11 +179,16 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
     setIsProcessing(true);
     
     try {
+      console.log('Starting picture QR generation...');
+      
       // First generate the base QR code
       const baseQR = await generateQRCode(qrContent, customization);
+      console.log('Base QR generated');
       
       // Then blend it with the selected image
       const blendedQR = await blendImageWithQR(selectedImage, baseQR);
+      console.log('Blending completed');
+      
       setProcessedQR(blendedQR);
       
       // Call the parent generate function
@@ -134,13 +196,13 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
       
       toast({
         title: "✨ Picture QR Generated!",
-        description: "Your face/image has been converted to a scannable QR code",
+        description: "Your image has been converted to a scannable QR code",
       });
     } catch (error) {
       console.error('Error generating picture QR:', error);
       toast({
         title: "Generation Failed",
-        description: "Failed to create picture QR code",
+        description: "Failed to create picture QR code. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -150,6 +212,8 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
 
   const blendImageWithQR = (imageDataUrl: string, qrDataUrl: string): Promise<string> => {
     return new Promise((resolve, reject) => {
+      console.log('Starting image blending process...');
+      
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
@@ -164,56 +228,96 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
 
       const checkLoaded = () => {
         imagesLoaded++;
+        console.log(`Images loaded: ${imagesLoaded}/2`);
         if (imagesLoaded === 2) {
           processImages();
         }
       };
 
       const processImages = () => {
-        // Set canvas size to QR code dimensions
-        canvas.width = qrImg.width;
-        canvas.height = qrImg.height;
+        try {
+          console.log('Processing images...');
+          
+          // Set canvas size to QR code dimensions
+          canvas.width = qrImg.width;
+          canvas.height = qrImg.height;
 
-        // Draw the QR code first
-        ctx.drawImage(qrImg, 0, 0);
+          // Draw the QR code first as base
+          ctx.drawImage(qrImg, 0, 0);
 
-        // Apply blend mode for the image overlay
-        ctx.globalCompositeOperation = useAdvancedBlending ? 'overlay' : 'multiply';
-        ctx.globalAlpha = overlayOpacity[0];
+          // Create a copy of the QR code for masking
+          const qrImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const qrPixels = qrImageData.data;
 
-        // Draw the image, scaled to fit the QR code
-        const aspectRatio = img.width / img.height;
-        const qrAspectRatio = qrImg.width / qrImg.height;
-        
-        let drawWidth, drawHeight, drawX, drawY;
-        
-        if (aspectRatio > qrAspectRatio) {
-          drawHeight = qrImg.height;
-          drawWidth = drawHeight * aspectRatio;
-          drawX = (qrImg.width - drawWidth) / 2;
-          drawY = 0;
-        } else {
-          drawWidth = qrImg.width;
-          drawHeight = drawWidth / aspectRatio;
-          drawX = 0;
-          drawY = (qrImg.height - drawHeight) / 2;
+          // Clear canvas and draw image first
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          // Draw the image, scaled to fit the QR code
+          const aspectRatio = img.width / img.height;
+          const qrAspectRatio = qrImg.width / qrImg.height;
+          
+          let drawWidth, drawHeight, drawX, drawY;
+          
+          if (aspectRatio > qrAspectRatio) {
+            drawHeight = qrImg.height;
+            drawWidth = drawHeight * aspectRatio;
+            drawX = (qrImg.width - drawWidth) / 2;
+            drawY = 0;
+          } else {
+            drawWidth = qrImg.width;
+            drawHeight = drawWidth / aspectRatio;
+            drawX = 0;
+            drawY = (qrImg.height - drawHeight) / 2;
+          }
+
+          ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+
+          // Get the image data
+          const blendedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const blendedPixels = blendedImageData.data;
+
+          // Blend the QR code pattern with the image
+          for (let i = 0; i < qrPixels.length; i += 4) {
+            const qrIsBlack = qrPixels[i] < 128; // QR black modules
+            
+            if (qrIsBlack) {
+              // Apply darkening to image pixels where QR is black
+              blendedPixels[i] = Math.floor(blendedPixels[i] * (1 - overlayOpacity[0])); // R
+              blendedPixels[i + 1] = Math.floor(blendedPixels[i + 1] * (1 - overlayOpacity[0])); // G
+              blendedPixels[i + 2] = Math.floor(blendedPixels[i + 2] * (1 - overlayOpacity[0])); // B
+            }
+          }
+
+          // Put the blended image data back
+          ctx.putImageData(blendedImageData, 0, 0);
+
+          console.log('Blending completed successfully');
+          resolve(canvas.toDataURL('image/png'));
+        } catch (error) {
+          console.error('Error in processImages:', error);
+          reject(error);
         }
-
-        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-
-        // Reset blend mode
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = 1;
-
-        resolve(canvas.toDataURL('image/png'));
       };
 
-      img.onload = checkLoaded;
-      img.onerror = () => reject(new Error('Failed to load image'));
+      img.onload = () => {
+        console.log('User image loaded');
+        checkLoaded();
+      };
+      img.onerror = (error) => {
+        console.error('Failed to load user image:', error);
+        reject(new Error('Failed to load user image'));
+      };
       
-      qrImg.onload = checkLoaded;
-      qrImg.onerror = () => reject(new Error('Failed to load QR code'));
+      qrImg.onload = () => {
+        console.log('QR image loaded');
+        checkLoaded();
+      };
+      qrImg.onerror = (error) => {
+        console.error('Failed to load QR code:', error);
+        reject(new Error('Failed to load QR code'));
+      };
 
+      // Start loading images
       img.src = imageDataUrl;
       qrImg.src = qrDataUrl;
     });
@@ -224,7 +328,14 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
       const link = document.createElement('a');
       link.href = processedQR;
       link.download = `picture-qr-${Date.now()}.png`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Downloaded",
+        description: "Picture QR code downloaded successfully",
+      });
     }
   };
 
@@ -267,11 +378,11 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={startCamera}
+                  onClick={showCamera ? stopCamera : startCamera}
                   className="flex items-center gap-2"
                 >
-                  <Camera className="w-4 h-4" />
-                  Use Camera
+                  {showCamera ? <StopCircle className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
+                  {showCamera ? 'Stop Camera' : 'Use Camera'}
                 </Button>
               </div>
               <input
@@ -290,24 +401,26 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
                 animate={{ opacity: 1, scale: 1 }}
                 className="space-y-3"
               >
-                <div className="relative">
+                <div className="relative bg-black rounded-lg overflow-hidden">
                   <video
                     ref={videoRef}
                     autoPlay
                     playsInline
-                    className="w-full rounded-lg border"
+                    muted
+                    className="w-full h-64 object-cover"
                   />
-                  <canvas ref={canvasRef} className="hidden" />
+                  <div className="absolute inset-0 border-2 border-dashed border-white/50 m-4 rounded-lg flex items-center justify-center pointer-events-none">
+                    <div className="text-white text-center">
+                      <Camera className="w-8 h-8 mx-auto mb-2 animate-pulse" />
+                      <p className="text-sm">Position yourself here</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button onClick={capturePhoto} className="flex-1">
-                    <Camera className="w-4 h-4 mr-2" />
-                    Capture
-                  </Button>
-                  <Button onClick={stopCamera} variant="outline">
-                    Cancel
-                  </Button>
-                </div>
+                <canvas ref={canvasRef} className="hidden" />
+                <Button onClick={capturePhoto} className="w-full">
+                  <Camera className="w-4 h-4 mr-2" />
+                  Capture Photo
+                </Button>
               </motion.div>
             )}
 

@@ -23,19 +23,43 @@ export const BarcodeConverter: React.FC = () => {
 
   const startScanning = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      const constraints = {
         video: { 
           facingMode: 'environment',
           width: { ideal: 1280 },
           height: { ideal: 720 }
         }
-      });
+      };
+
+      let stream: MediaStream;
+      
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } else {
+        // Fallback for older browsers
+        const getUserMedia = (navigator as any).getUserMedia || 
+                            (navigator as any).webkitGetUserMedia || 
+                            (navigator as any).mozGetUserMedia;
+        
+        if (!getUserMedia) {
+          throw new Error('Camera not supported');
+        }
+        
+        stream = await new Promise((resolve, reject) => {
+          getUserMedia.call(navigator, constraints, resolve, reject);
+        });
+      }
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play(); // Ensure video plays
         streamRef.current = stream;
         setIsScanning(true);
+        
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch(error => {
+            console.error('Error playing video:', error);
+          });
+        };
         
         toast({
           title: "📷 Camera Ready!",
@@ -70,9 +94,9 @@ export const BarcodeConverter: React.FC = () => {
       const context = canvas.getContext('2d');
       
       if (context) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0);
+        canvas.width = video.videoWidth || video.clientWidth;
+        canvas.height = video.videoHeight || video.clientHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
         
         // In a real implementation, you'd use a barcode scanning library here
         // For demo purposes, we'll show a success message
@@ -194,21 +218,21 @@ export const BarcodeConverter: React.FC = () => {
               )}
             </div>
 
-            {/* Camera View - Fixed Display */}
+            {/* Camera View */}
             {isScanning && (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="relative rounded-lg overflow-hidden bg-black aspect-video"
+                className="relative rounded-lg overflow-hidden bg-black"
               >
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-full object-cover"
+                  className="w-full h-64 object-cover"
                 />
-                <div className="absolute inset-0 border-2 border-dashed border-white/50 m-4 rounded-lg flex items-center justify-center">
+                <div className="absolute inset-0 border-2 border-dashed border-white/50 m-4 rounded-lg flex items-center justify-center pointer-events-none">
                   <div className="text-white text-center">
                     <ScanLine className="w-8 h-8 mx-auto mb-2 animate-pulse" />
                     <p className="text-sm">Position barcode here</p>
