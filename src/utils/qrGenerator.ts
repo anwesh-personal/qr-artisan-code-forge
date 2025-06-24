@@ -1,4 +1,3 @@
-
 import QRCode from 'qrcode';
 
 export interface QROptions {
@@ -9,6 +8,7 @@ export interface QROptions {
     light: string;
   };
   width: number;
+  logo?: string;
 }
 
 export const generateQRCode = async (
@@ -16,6 +16,8 @@ export const generateQRCode = async (
   options: QROptions
 ): Promise<string> => {
   try {
+    console.log('Generating QR code with options:', options);
+    
     const qrOptions = {
       errorCorrectionLevel: options.errorCorrectionLevel,
       margin: options.margin,
@@ -26,11 +28,74 @@ export const generateQRCode = async (
       }
     };
 
-    return await QRCode.toDataURL(text, qrOptions);
+    // Generate base QR code
+    let qrCodeDataUrl = await QRCode.toDataURL(text, qrOptions);
+    
+    // If logo is provided, embed it
+    if (options.logo) {
+      qrCodeDataUrl = await embedLogoInQR(qrCodeDataUrl, options.logo);
+    }
+    
+    return qrCodeDataUrl;
   } catch (error) {
     console.error('Error generating QR code:', error);
     throw new Error('Failed to generate QR code');
   }
+};
+
+const embedLogoInQR = async (qrCodeDataUrl: string, logoDataUrl: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(qrCodeDataUrl); // Fallback to original QR if canvas fails
+        return;
+      }
+
+      const qrImage = new Image();
+      qrImage.onload = () => {
+        canvas.width = qrImage.width;
+        canvas.height = qrImage.height;
+        
+        // Draw QR code
+        ctx.drawImage(qrImage, 0, 0);
+        
+        const logoImage = new Image();
+        logoImage.onload = () => {
+          // Calculate logo size (20% of QR code size)
+          const logoSize = Math.min(qrImage.width, qrImage.height) * 0.2;
+          const logoX = (qrImage.width - logoSize) / 2;
+          const logoY = (qrImage.height - logoSize) / 2;
+          
+          // Draw white background for logo
+          ctx.fillStyle = 'white';
+          ctx.fillRect(logoX - 5, logoY - 5, logoSize + 10, logoSize + 10);
+          
+          // Draw logo
+          ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+          
+          resolve(canvas.toDataURL());
+        };
+        
+        logoImage.onerror = () => {
+          console.warn('Failed to load logo, using QR code without logo');
+          resolve(qrCodeDataUrl);
+        };
+        
+        logoImage.src = logoDataUrl;
+      };
+      
+      qrImage.onerror = () => {
+        reject(new Error('Failed to load QR code image'));
+      };
+      
+      qrImage.src = qrCodeDataUrl;
+    } catch (error) {
+      console.warn('Failed to embed logo:', error);
+      resolve(qrCodeDataUrl); // Fallback to original QR
+    }
+  });
 };
 
 export const generateVCard = (contact: {

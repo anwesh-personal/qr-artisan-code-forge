@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Card } from '@/components/ui/card';
@@ -17,7 +16,6 @@ interface AdvancedCustomizationProps {
   onChange: (options: QROptions) => void;
   onRegenerate: () => void;
   hasQRCode: boolean;
-  aiMode: boolean;
   activeFeatures: string[];
 }
 
@@ -26,13 +24,10 @@ export const AdvancedCustomization: React.FC<AdvancedCustomizationProps> = ({
   onChange,
   onRegenerate,
   hasQRCode,
-  aiMode,
   activeFeatures
 }) => {
   const [showColorPicker, setShowColorPicker] = useState<'dark' | 'light' | null>(null);
   const [logoFile, setLogoFile] = useState<string>('');
-  const [gradientEnabled, setGradientEnabled] = useState(false);
-  const [holographicEffect, setHolographicEffect] = useState(false);
 
   const handleColorChange = (color: string, type: 'dark' | 'light') => {
     onChange({
@@ -51,9 +46,10 @@ export const AdvancedCustomization: React.FC<AdvancedCustomizationProps> = ({
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setLogoFile(result);
+        console.log('Logo uploaded:', result.substring(0, 50) + '...');
         onChange({
           ...options,
-          // @ts-ignore - extending QROptions
+          // @ts-ignore - extending QROptions for logo
           logo: result
         });
       };
@@ -70,8 +66,7 @@ export const AdvancedCustomization: React.FC<AdvancedCustomizationProps> = ({
   ];
 
   const isReadyToGenerate = () => {
-    // Check if basic customization is complete
-    return options.color.dark && options.color.light && options.width && options.margin;
+    return options.color.dark && options.color.light && options.width && options.margin !== undefined;
   };
 
   return (
@@ -81,11 +76,6 @@ export const AdvancedCustomization: React.FC<AdvancedCustomizationProps> = ({
         <div className="flex items-center gap-2">
           <Palette className="w-4 h-4 text-blue-500" />
           <Label className="font-semibold">Colors</Label>
-          {aiMode && (
-            <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs">
-              AI Enhanced
-            </Badge>
-          )}
         </div>
         
         <div className="grid grid-cols-2 gap-3">
@@ -270,41 +260,13 @@ export const AdvancedCustomization: React.FC<AdvancedCustomizationProps> = ({
 
       <Separator />
 
-      {/* Advanced Effects */}
-      <div className="space-y-4">
-        <Label className="font-semibold">Advanced Effects</Label>
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-purple-500" />
-            <Label className="text-sm">Holographic Effect</Label>
-          </div>
-          <Switch 
-            checked={holographicEffect}
-            onCheckedChange={setHolographicEffect}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Palette className="w-4 h-4 text-blue-500" />
-            <Label className="text-sm">Gradient Mode</Label>
-          </div>
-          <Switch 
-            checked={gradientEnabled}
-            onCheckedChange={setGradientEnabled}
-          />
-        </div>
-      </div>
-
-      {/* Generation Control - Only show when ready */}
+      {/* Generation Control */}
       {isReadyToGenerate() && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-2"
         >
-          <Separator />
           <div className="flex items-center gap-2">
             <Wand2 className="w-4 h-4 text-purple-500" />
             <Label className="font-semibold">Ready to Generate</Label>

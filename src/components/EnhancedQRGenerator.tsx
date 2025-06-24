@@ -9,25 +9,23 @@ import { Badge } from '@/components/ui/badge';
 import { 
   QrCode, 
   Sparkles, 
-  Wand2, 
   Eye, 
   Palette, 
   Camera,
   Download,
   Share2,
-  Zap,
-  Brain,
   Scan,
   Globe,
   Barcode,
   Info,
-  Heart
+  Settings,
+  Zap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { QROptions, generateQRCode } from '@/utils/qrGenerator';
 import { QRInput } from './QRInput';
 import { AdvancedCustomization } from './AdvancedCustomization';
-import { AIQRPreview } from './AIQRPreview';
+import { QRPreview } from './QRPreview';
 import { SmartQRHistory } from './SmartQRHistory';
 import { QRAnalytics } from './QRAnalytics';
 import { CustomizableCard } from './CustomizableCard';
@@ -40,13 +38,6 @@ export interface EnhancedQRData {
   id: string;
   type: string;
   content: string;
-  aiEnhanced: boolean;
-  smartFeatures: {
-    brandAlignment: boolean;
-    contextAware: boolean;
-    adaptiveDesign: boolean;
-    audienceOptimized: boolean;
-  };
   customization: QROptions & {
     logo?: string;
     gradientColors?: string[];
@@ -72,76 +63,48 @@ export interface EnhancedQRData {
   };
 }
 
-const revolutionaryFeatures = [
+const professionalFeatures = [
   {
-    id: 'ai-enhancement',
-    title: 'AI-Powered Design Enhancement',
-    description: 'AI automatically optimizes your QR code for maximum scannability and visual appeal',
-    icon: Brain,
+    id: 'high-quality',
+    title: 'High Quality Output',
+    description: 'Generate crisp, high-resolution QR codes perfect for print and digital use',
+    icon: Sparkles,
     gradient: 'from-purple-500 to-pink-500'
   },
   {
-    id: 'smart-branding',
-    title: 'Smart Brand Alignment',
-    description: 'Automatically matches your brand colors and style from uploaded logo',
+    id: 'custom-branding',
+    title: 'Custom Branding',
+    description: 'Add your logo, custom colors, and brand elements to QR codes',
     icon: Palette,
     gradient: 'from-blue-500 to-cyan-500'
   },
   {
-    id: 'context-aware',
-    title: 'Context-Aware Generation',
-    description: 'QR adapts based on where and how it will be used (print, digital, outdoor, etc.)',
-    icon: Eye,
+    id: 'multiple-formats',
+    title: 'Multiple Formats',
+    description: 'Export in PNG, JPG, SVG and various sizes for different use cases',
+    icon: Download,
     gradient: 'from-green-500 to-emerald-500'
   },
   {
-    id: 'real-time-preview',
-    title: 'Live Camera Testing',
-    description: 'Test QR code scannability in real-time using your device camera',
-    icon: Camera,
+    id: 'live-preview',
+    title: 'Live Preview',
+    description: 'See changes in real-time as you customize your QR code design',
+    icon: Eye,
     gradient: 'from-orange-500 to-red-500'
   },
   {
-    id: 'holographic',
-    title: 'Holographic Effects',
-    description: 'Add stunning holographic and metallic effects that work in print and digital',
-    icon: Sparkles,
+    id: 'batch-processing',
+    title: 'Batch Generation',
+    description: 'Generate multiple QR codes at once for campaigns and bulk use',
+    icon: Zap,
     gradient: 'from-indigo-500 to-purple-500'
   },
   {
-    id: 'smart-analytics',
-    title: 'Advanced Analytics',
-    description: 'Track scans, locations, devices, and user behavior with privacy-first approach',
+    id: 'analytics',
+    title: 'Usage Analytics',
+    description: 'Track and analyze QR code performance and scan statistics',
     icon: Scan,
     gradient: 'from-teal-500 to-blue-500'
-  },
-  {
-    id: 'dynamic-content',
-    title: 'Dynamic Content Updates',
-    description: 'Update QR destination without reprinting - perfect for campaigns',
-    icon: Globe,
-    gradient: 'from-rose-500 to-pink-500'
-  },
-  {
-    id: 'batch-generation',
-    title: 'Intelligent Batch Processing',
-    description: 'Generate thousands of unique QR codes with smart variations and tracking',
-    icon: Zap,
-    gradient: 'from-yellow-500 to-orange-500'
-  },
-  {
-    id: 'accessibility-optimizer',
-    title: 'Accessibility Optimizer',
-    description: 'Ensures QR codes work for users with visual impairments and various devices',
-    icon: Eye,
-    gradient: 'from-violet-500 to-purple-500'
-  },
-  {
-    id: 'magic-wand',
-    title: 'Magic Design Assistant',
-    description: 'One-click generation of stunning designs based on your content and intent',
-    icon: Wand2,
-    gradient: 'from-emerald-500 to-teal-500'
   }
 ];
 
@@ -150,7 +113,6 @@ export const EnhancedQRGenerator: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState<EnhancedQRData[]>([]);
   const [activeFeatures, setActiveFeatures] = useState<string[]>([]);
-  const [isAIMode, setIsAIMode] = useState(true);
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
@@ -190,23 +152,15 @@ export const EnhancedQRGenerator: React.FC = () => {
     setIsGenerating(true);
     
     try {
-      // Simulate AI enhancement
-      const enhancedOptions = isAIMode ? await enhanceWithAI(customization, content, type) : customization;
+      console.log('Generating QR with customization:', customization);
       
-      const qrCode = await generateQRCode(content, enhancedOptions);
+      const qrCode = await generateQRCode(content, customization);
       
       const newQRData: EnhancedQRData = {
         id: Date.now().toString(),
         type,
         content,
-        aiEnhanced: isAIMode,
-        smartFeatures: {
-          brandAlignment: activeFeatures.includes('smart-branding'),
-          contextAware: activeFeatures.includes('context-aware'),
-          adaptiveDesign: activeFeatures.includes('ai-enhancement'),
-          audienceOptimized: activeFeatures.includes('accessibility-optimizer')
-        },
-        customization: { ...enhancedOptions },
+        customization: { ...customization },
         qrCode,
         timestamp: Date.now(),
         analytics: {
@@ -224,8 +178,8 @@ export const EnhancedQRGenerator: React.FC = () => {
       localStorage.setItem('enhanced-qr-history', JSON.stringify(newHistory));
 
       toast({
-        title: "✨ QR Code Enhanced!",
-        description: `${isAIMode ? 'AI-powered' : 'Custom'} QR code generated successfully!`,
+        title: "✨ QR Code Generated!",
+        description: "Your custom QR code is ready for download",
       });
     } catch (error) {
       console.error('Error generating QR code:', error);
@@ -237,32 +191,6 @@ export const EnhancedQRGenerator: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  const enhanceWithAI = async (options: QROptions, content: string, type: string) => {
-    // Simulate AI enhancement logic
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const aiEnhancements = {
-      ...options,
-      // Smart color optimization based on content type
-      color: type === 'url' 
-        ? { dark: '#2563eb', light: '#f8fafc' }
-        : type === 'wifi'
-        ? { dark: '#059669', light: '#f0fdf4' }
-        : options.color,
-      
-      // AI-optimized error correction
-      errorCorrectionLevel: content.length > 100 ? 'H' : 'M' as 'L' | 'M' | 'Q' | 'H',
-      
-      // Smart sizing
-      width: content.length > 200 ? 768 : 512,
-      
-      // AI-suggested margin
-      margin: 6
-    };
-
-    return aiEnhancements;
   };
 
   const toggleFeature = (featureId: string) => {
@@ -327,7 +255,7 @@ export const EnhancedQRGenerator: React.FC = () => {
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.8 }}
             >
-              anwe.sh
+              Quantum QR
             </motion.h1>
             <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
               Free Forever
@@ -338,32 +266,8 @@ export const EnhancedQRGenerator: React.FC = () => {
             className="text-lg md:text-xl text-muted-foreground mb-6"
             variants={itemVariants}
           >
-            Next-Generation AI-Powered QR Code Creation Platform
+            Professional QR Code Generator with Advanced Customization
           </motion.p>
-
-          {/* AI Mode Toggle */}
-          <motion.div 
-            className="flex items-center justify-center gap-3 mb-6"
-            variants={itemVariants}
-          >
-            <Brain className="w-5 h-5 text-purple-500" />
-            <span className="font-medium">AI Enhancement</span>
-            <Switch 
-              checked={isAIMode} 
-              onCheckedChange={setIsAIMode}
-              className="data-[state=checked]:bg-purple-600"
-            />
-            {isAIMode && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="flex items-center gap-1"
-              >
-                <Sparkles className="w-4 h-4 text-yellow-500" />
-                <span className="text-sm text-yellow-600 font-medium">Active</span>
-              </motion.div>
-            )}
-          </motion.div>
         </motion.div>
 
         {/* Main Tabs */}
@@ -384,14 +288,14 @@ export const EnhancedQRGenerator: React.FC = () => {
           </TabsList>
 
           <TabsContent value="generator" className="space-y-6">
-            {/* Revolutionary Features Grid */}
+            {/* Professional Features Grid */}
             <motion.div 
               className="mb-8"
               variants={itemVariants}
             >
-              <h2 className="text-2xl font-bold mb-4 text-center">Revolutionary Features</h2>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {revolutionaryFeatures.map((feature) => (
+              <h2 className="text-2xl font-bold mb-4 text-center">Professional Features</h2>
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                {professionalFeatures.map((feature) => (
                   <motion.div
                     key={feature.id}
                     whileHover={{ scale: 1.05 }}
@@ -436,11 +340,6 @@ export const EnhancedQRGenerator: React.FC = () => {
                         <QrCode className="w-5 h-5 text-purple-500" />
                       </motion.div>
                       Content Input
-                      {isAIMode && (
-                        <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-                          AI Enhanced
-                        </Badge>
-                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -451,8 +350,8 @@ export const EnhancedQRGenerator: React.FC = () => {
                 <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Palette className="w-5 h-5 text-blue-500" />
-                      Advanced Customization
+                      <Settings className="w-5 h-5 text-blue-500" />
+                      Customization
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -461,7 +360,6 @@ export const EnhancedQRGenerator: React.FC = () => {
                       onChange={setCustomization}
                       onRegenerate={() => qrData && generateEnhancedQR(qrData.content, qrData.type)}
                       hasQRCode={!!qrData}
-                      aiMode={isAIMode}
                       activeFeatures={activeFeatures}
                     />
                   </CardContent>
@@ -477,11 +375,11 @@ export const EnhancedQRGenerator: React.FC = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Eye className="w-5 h-5 text-green-500" />
-                      AI Preview & Testing
+                      Preview & Download
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <AIQRPreview qrData={qrData} isGenerating={isGenerating} />
+                    <QRPreview qrData={qrData} isGenerating={isGenerating} />
                   </CardContent>
                 </Card>
 
@@ -515,7 +413,7 @@ export const EnhancedQRGenerator: React.FC = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Scan className="w-5 h-5 text-orange-500" />
-                      Smart Analytics
+                      Analytics
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -527,7 +425,7 @@ export const EnhancedQRGenerator: React.FC = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Globe className="w-5 h-5 text-teal-500" />
-                      Smart History
+                      History
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -587,7 +485,7 @@ export const EnhancedQRGenerator: React.FC = () => {
                   if (navigator.share) {
                     navigator.share({
                       title: 'My QR Code',
-                      text: 'Check out this QR code from anwe.sh!',
+                      text: 'Check out this QR code from Quantum QR!',
                     });
                   }
                 }}
@@ -600,6 +498,22 @@ export const EnhancedQRGenerator: React.FC = () => {
 
         {/* Donation Card */}
         <DonationCard />
+
+        {/* Footer */}
+        <footer className="mt-16 py-8 border-t border-border/50">
+          <div className="text-center space-y-4">
+            <div className="flex items-center justify-center gap-2">
+              <QrCode className="w-5 h-5 text-purple-500" />
+              <span className="font-semibold text-lg">Quantum QR</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Powered by <a href="https://anwe.sh" target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:underline font-medium">anwe.sh</a>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              © 2024 Quantum QR. Free forever, no limits, no watermarks.
+            </p>
+          </div>
+        </footer>
       </div>
     </motion.div>
   );
