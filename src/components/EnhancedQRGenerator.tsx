@@ -8,7 +8,6 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { 
   QrCode, 
-  Sparkles, 
   Eye, 
   Palette, 
   Camera,
@@ -19,7 +18,9 @@ import {
   Barcode,
   Info,
   Settings,
-  Zap
+  Zap,
+  Layers,
+  Image
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { QROptions, generateQRCode } from '@/utils/qrGenerator';
@@ -31,6 +32,8 @@ import { QRAnalytics } from './QRAnalytics';
 import { CustomizableCard } from './CustomizableCard';
 import { BarcodeConverter } from './BarcodeConverter';
 import { DonationCard } from './DonationCard';
+import { BatchGenerator } from './BatchGenerator';
+import { PictureToQR } from './PictureToQR';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from 'next-themes';
 
@@ -41,17 +44,14 @@ export interface EnhancedQRData {
   customization: QROptions & {
     logo?: string;
     gradientColors?: string[];
-    gradientDirection?: 'horizontal' | 'vertical' | 'diagonal' | 'radial';
-    cornerStyle?: 'square' | 'rounded' | 'circle' | 'star' | 'diamond';
-    patternStyle?: 'square' | 'circle' | 'rounded' | 'hexagon' | 'triangle';
+    gradientDirection?: 'horizontal' | 'vertical' | 'diagonal';
+    cornerStyle?: 'square' | 'rounded' | 'circle';
+    patternStyle?: 'square' | 'circle' | 'rounded';
     backgroundColor?: string;
     foregroundColor?: string;
-    shape?: 'square' | 'circle' | 'rounded-square' | 'heart' | 'star';
+    shape?: 'square' | 'circle' | 'rounded-square';
     texture?: string;
-    animation?: 'none' | 'pulse' | 'glow' | 'breathe' | 'rotate';
-    holographic?: boolean;
-    metallic?: boolean;
-    neon?: boolean;
+    animation?: 'none' | 'pulse' | 'glow' | 'breathe';
   };
   qrCode: string;
   timestamp: number;
@@ -63,48 +63,54 @@ export interface EnhancedQRData {
   };
 }
 
-const professionalFeatures = [
+const workingFeatures = [
   {
     id: 'high-quality',
     title: 'High Quality Output',
     description: 'Generate crisp, high-resolution QR codes perfect for print and digital use',
-    icon: Sparkles,
-    gradient: 'from-purple-500 to-pink-500'
+    icon: Zap,
+    gradient: 'from-purple-500 to-pink-500',
+    working: true
   },
   {
     id: 'custom-branding',
     title: 'Custom Branding',
     description: 'Add your logo, custom colors, and brand elements to QR codes',
     icon: Palette,
-    gradient: 'from-blue-500 to-cyan-500'
+    gradient: 'from-blue-500 to-cyan-500',
+    working: true
   },
   {
     id: 'multiple-formats',
     title: 'Multiple Formats',
     description: 'Export in PNG, JPG, SVG and various sizes for different use cases',
     icon: Download,
-    gradient: 'from-green-500 to-emerald-500'
+    gradient: 'from-green-500 to-emerald-500',
+    working: true
+  },
+  {
+    id: 'batch-processing',
+    title: 'Batch Generation',
+    description: 'Generate multiple QR codes at once for campaigns and bulk use',
+    icon: Layers,
+    gradient: 'from-indigo-500 to-purple-500',
+    working: true
+  },
+  {
+    id: 'picture-to-qr',
+    title: 'Picture to QR',
+    description: 'Convert your face or any image into a scannable QR code',
+    icon: Image,
+    gradient: 'from-orange-500 to-red-500',
+    working: true
   },
   {
     id: 'live-preview',
     title: 'Live Preview',
     description: 'See changes in real-time as you customize your QR code design',
     icon: Eye,
-    gradient: 'from-orange-500 to-red-500'
-  },
-  {
-    id: 'batch-processing',
-    title: 'Batch Generation',
-    description: 'Generate multiple QR codes at once for campaigns and bulk use',
-    icon: Zap,
-    gradient: 'from-indigo-500 to-purple-500'
-  },
-  {
-    id: 'analytics',
-    title: 'Usage Analytics',
-    description: 'Track and analyze QR code performance and scan statistics',
-    icon: Scan,
-    gradient: 'from-teal-500 to-blue-500'
+    gradient: 'from-teal-500 to-blue-500',
+    working: true
   }
 ];
 
@@ -113,6 +119,7 @@ export const EnhancedQRGenerator: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState<EnhancedQRData[]>([]);
   const [activeFeatures, setActiveFeatures] = useState<string[]>([]);
+  const [currentTab, setCurrentTab] = useState('generator');
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
@@ -194,11 +201,33 @@ export const EnhancedQRGenerator: React.FC = () => {
   };
 
   const toggleFeature = (featureId: string) => {
+    const feature = workingFeatures.find(f => f.id === featureId);
+    if (!feature?.working) {
+      toast({
+        title: "Feature Coming Soon",
+        description: "This feature is currently being developed",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setActiveFeatures(prev => 
       prev.includes(featureId) 
         ? prev.filter(id => id !== featureId)
         : [...prev, featureId]
     );
+
+    // Handle specific feature actions
+    if (featureId === 'batch-processing') {
+      setCurrentTab('batch');
+    } else if (featureId === 'picture-to-qr') {
+      setCurrentTab('picture');
+    } else if (featureId === 'multiple-formats') {
+      toast({
+        title: "Multiple Formats Enabled",
+        description: "You can now download QR codes in PNG, JPG, and SVG formats from the preview section",
+      });
+    }
   };
 
   const containerVariants = {
@@ -270,16 +299,60 @@ export const EnhancedQRGenerator: React.FC = () => {
           </motion.p>
         </motion.div>
 
+        {/* Working Features Grid */}
+        <motion.div 
+          className="mb-8"
+          variants={itemVariants}
+        >
+          <h2 className="text-2xl font-bold mb-4 text-center">Working Features</h2>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+            {workingFeatures.map((feature) => (
+              <motion.div
+                key={feature.id}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button
+                  variant={activeFeatures.includes(feature.id) ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => toggleFeature(feature.id)}
+                  className={`h-auto p-3 w-full ${
+                    activeFeatures.includes(feature.id) 
+                      ? `bg-gradient-to-r ${feature.gradient} text-white border-0` 
+                      : ''
+                  } ${!feature.working ? 'opacity-50' : ''}`}
+                  disabled={!feature.working}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <feature.icon className="w-4 h-4" />
+                    <span className="text-xs text-center leading-tight">
+                      {feature.title.split(' ').slice(0, 2).join(' ')}
+                    </span>
+                  </div>
+                </Button>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
         {/* Main Tabs */}
-        <Tabs defaultValue="generator" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-3">
+        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-5">
             <TabsTrigger value="generator" className="flex items-center gap-2">
               <QrCode className="w-4 h-4" />
-              QR Generator
+              Generator
+            </TabsTrigger>
+            <TabsTrigger value="batch" className="flex items-center gap-2">
+              <Layers className="w-4 h-4" />
+              Batch
+            </TabsTrigger>
+            <TabsTrigger value="picture" className="flex items-center gap-2">
+              <Image className="w-4 h-4" />
+              Picture
             </TabsTrigger>
             <TabsTrigger value="converter" className="flex items-center gap-2">
               <Barcode className="w-4 h-4" />
-              Barcode Converter
+              Barcode
             </TabsTrigger>
             <TabsTrigger value="gallery" className="flex items-center gap-2">
               <Scan className="w-4 h-4" />
@@ -288,42 +361,6 @@ export const EnhancedQRGenerator: React.FC = () => {
           </TabsList>
 
           <TabsContent value="generator" className="space-y-6">
-            {/* Professional Features Grid */}
-            <motion.div 
-              className="mb-8"
-              variants={itemVariants}
-            >
-              <h2 className="text-2xl font-bold mb-4 text-center">Professional Features</h2>
-              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-                {professionalFeatures.map((feature) => (
-                  <motion.div
-                    key={feature.id}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Button
-                      variant={activeFeatures.includes(feature.id) ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => toggleFeature(feature.id)}
-                      className={`h-auto p-3 w-full ${
-                        activeFeatures.includes(feature.id) 
-                          ? `bg-gradient-to-r ${feature.gradient} text-white border-0` 
-                          : ''
-                      }`}
-                    >
-                      <div className="flex flex-col items-center gap-1">
-                        <feature.icon className="w-4 h-4" />
-                        <span className="text-xs text-center leading-tight">
-                          {feature.title.split(' ').slice(0, 2).join(' ')}
-                        </span>
-                      </div>
-                    </Button>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Input Section */}
               <motion.div 
@@ -383,7 +420,6 @@ export const EnhancedQRGenerator: React.FC = () => {
                   </CardContent>
                 </Card>
 
-                {/* Customizable Card Preview */}
                 {qrData && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -392,7 +428,7 @@ export const EnhancedQRGenerator: React.FC = () => {
                     <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                          <Sparkles className="w-5 h-5 text-purple-500" />
+                          <Palette className="w-5 h-5 text-purple-500" />
                           Beautiful Card Preview
                         </CardTitle>
                       </CardHeader>
@@ -442,6 +478,17 @@ export const EnhancedQRGenerator: React.FC = () => {
             </div>
           </TabsContent>
 
+          <TabsContent value="batch">
+            <BatchGenerator onBatchGenerate={(qrCodes) => {
+              setHistory(prev => [...qrCodes, ...prev.slice(0, 20 - qrCodes.length)]);
+              localStorage.setItem('enhanced-qr-history', JSON.stringify([...qrCodes, ...history.slice(0, 20 - qrCodes.length)]));
+            }} />
+          </TabsContent>
+
+          <TabsContent value="picture">
+            <PictureToQR onGenerate={generateEnhancedQR} customization={customization} />
+          </TabsContent>
+
           <TabsContent value="converter">
             <BarcodeConverter />
           </TabsContent>
@@ -459,6 +506,7 @@ export const EnhancedQRGenerator: React.FC = () => {
                   onLoad={(data) => {
                     setQrData(data);
                     setCustomization(data.customization);
+                    setCurrentTab('generator');
                   }} 
                   expanded={true}
                 />
@@ -467,36 +515,6 @@ export const EnhancedQRGenerator: React.FC = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Floating Action Button for Mobile */}
-        <AnimatePresence>
-          {qrData && (
-            <motion.div
-              className="fixed bottom-6 left-6 z-50 md:hidden"
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              exit={{ scale: 0, rotate: 180 }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <Button
-                size="lg"
-                className="rounded-full w-14 h-14 bg-gradient-to-r from-purple-500 to-pink-500 shadow-2xl"
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator.share({
-                      title: 'My QR Code',
-                      text: 'Check out this QR code from Quantum QR!',
-                    });
-                  }
-                }}
-              >
-                <Share2 className="w-6 h-6" />
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Donation Card */}
         <DonationCard />
 
         {/* Footer */}

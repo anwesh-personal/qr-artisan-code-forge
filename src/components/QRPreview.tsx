@@ -5,14 +5,11 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Download, Share2, Copy, Zap, Eye, Smartphone, Monitor } from 'lucide-react';
-import { QRData } from './QRGenerator';
-import { downloadQRCode } from '@/utils/fileHandler';
-import { embedLogoInQR, addGradientOverlay } from '@/utils/imageProcessor';
+import { EnhancedQRData } from './EnhancedQRGenerator';
 import { useToast } from '@/hooks/use-toast';
-import html2canvas from 'html2canvas';
 
 interface QRPreviewProps {
-  qrData: QRData | null;
+  qrData: EnhancedQRData | null;
   isGenerating: boolean;
 }
 
@@ -24,45 +21,58 @@ export const QRPreview: React.FC<QRPreviewProps> = ({ qrData, isGenerating }) =>
 
   useEffect(() => {
     if (qrData) {
-      processQRCode();
+      setProcessedQR(qrData.qrCode);
     }
   }, [qrData]);
-
-  const processQRCode = async () => {
-    if (!qrData) return;
-
-    setIsProcessing(true);
-    let result = qrData.qrCode;
-
-    try {
-      // Apply logo if present
-      if (qrData.customization.logo) {
-        result = await embedLogoInQR(result, qrData.customization.logo, 0.2);
-      }
-
-      // Apply gradient if present
-      if (qrData.customization.gradientColors && qrData.customization.gradientColors.length > 1) {
-        result = await addGradientOverlay(
-          result,
-          qrData.customization.gradientColors,
-          qrData.customization.gradientDirection || 'diagonal'
-        );
-      }
-
-      setProcessedQR(result);
-    } catch (error) {
-      console.error('Error processing QR code:', error);
-      setProcessedQR(qrData.qrCode);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const handleDownload = (format: 'png' | 'jpg' | 'svg' = 'png') => {
     if (!processedQR) return;
 
     const filename = `qrcode-${Date.now()}.${format}`;
-    downloadQRCode(processedQR, filename);
+    
+    if (format === 'svg') {
+      // For SVG, we'd need to convert the QR to SVG format
+      toast({
+        title: "SVG Export",
+        description: "SVG export coming soon! Using PNG for now.",
+      });
+      format = 'png';
+    }
+
+    // Create download link
+    const link = document.createElement('a');
+    
+    if (format === 'jpg') {
+      // Convert PNG to JPG
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        if (ctx) {
+          // Fill with white background for JPG
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          
+          link.href = canvas.toDataURL('image/jpeg', 0.9);
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      };
+      img.src = processedQR;
+    } else {
+      link.href = processedQR;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
     
     toast({
       title: "Downloaded",
@@ -85,7 +95,6 @@ export const QRPreview: React.FC<QRPreviewProps> = ({ qrData, isGenerating }) =>
         description: "QR code copied to clipboard",
       });
     } catch (error) {
-      // Fallback: copy the data URL
       try {
         await navigator.clipboard.writeText(processedQR);
         toast({
@@ -112,16 +121,16 @@ export const QRPreview: React.FC<QRPreviewProps> = ({ qrData, isGenerating }) =>
         const file = new File([blob], 'qrcode.png', { type: 'image/png' });
         
         await navigator.share({
-          title: 'QR Code',
+          title: 'QR Code from Quantum QR',
           text: 'Check out this QR code!',
           files: [file]
         });
       } catch (error) {
         console.error('Error sharing:', error);
-        handleCopy(); // Fallback to copy
+        handleCopy();
       }
     } else {
-      handleCopy(); // Fallback to copy
+      handleCopy();
     }
   };
 
@@ -135,6 +144,7 @@ export const QRPreview: React.FC<QRPreviewProps> = ({ qrData, isGenerating }) =>
       upi: 'bg-yellow-100 text-yellow-800',
       sms: 'bg-pink-100 text-pink-800',
       email: 'bg-red-100 text-red-800',
+      picture: 'bg-gradient-to-r from-orange-500 to-red-500 text-white',
     };
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
@@ -224,12 +234,12 @@ export const QRPreview: React.FC<QRPreviewProps> = ({ qrData, isGenerating }) =>
       <div className="grid grid-cols-2 gap-3">
         <Button onClick={() => handleDownload('png')} className="flex items-center gap-2">
           <Download className="w-4 h-4" />
-          Download PNG
+          PNG
         </Button>
         
-        <Button onClick={handleShare} variant="outline" className="flex items-center gap-2">
-          <Share2 className="w-4 h-4" />
-          Share
+        <Button onClick={() => handleDownload('jpg')} variant="outline" className="flex items-center gap-2">
+          <Download className="w-4 h-4" />
+          JPG
         </Button>
         
         <Button onClick={handleCopy} variant="outline" className="flex items-center gap-2">
@@ -237,52 +247,24 @@ export const QRPreview: React.FC<QRPreviewProps> = ({ qrData, isGenerating }) =>
           Copy
         </Button>
         
-        <Button onClick={() => handleDownload('jpg')} variant="outline" className="flex items-center gap-2">
-          <Download className="w-4 h-4" />
-          JPG
+        <Button onClick={handleShare} variant="outline" className="flex items-center gap-2">
+          <Share2 className="w-4 h-4" />
+          Share
         </Button>
       </div>
 
-      {/* Additional Download Options */}
+      {/* Format Information */}
       <Card className="p-4">
-        <h4 className="font-medium mb-3">Advanced Downloads</h4>
-        <div className="grid grid-cols-1 gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => handleDownload('png')}
-            className="justify-start"
-          >
-            High Quality PNG (Recommended)
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => handleDownload('jpg')}
-            className="justify-start"
-          >
-            JPEG (Smaller file size)
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={async () => {
-              const element = document.getElementById('qr-preview');
-              if (element) {
-                const canvas = await html2canvas(element, { 
-                  scale: 4,
-                  backgroundColor: qrData.customization.color.light 
-                });
-                const link = document.createElement('a');
-                link.download = `qrcode-hd-${Date.now()}.png`;
-                link.href = canvas.toDataURL();
-                link.click();
-              }
-            }}
-            className="justify-start"
-          >
-            Ultra HD PNG (Print Quality)
-          </Button>
+        <h4 className="font-medium mb-3">Download Formats</h4>
+        <div className="grid grid-cols-1 gap-2 text-sm">
+          <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+            <span>PNG (Recommended)</span>
+            <Badge variant="outline">Lossless</Badge>
+          </div>
+          <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+            <span>JPG (Smaller size)</span>
+            <Badge variant="outline">Compressed</Badge>
+          </div>
         </div>
       </Card>
     </div>
