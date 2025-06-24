@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -221,8 +222,8 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
         return;
       }
 
-      const img = new Image();
-      const qrImg = new Image();
+      const img = document.createElement('img');
+      const qrImg = document.createElement('img');
       let imagesLoaded = 0;
 
       const checkLoaded = () => {
