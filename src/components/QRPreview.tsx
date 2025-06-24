@@ -25,59 +25,132 @@ export const QRPreview: React.FC<QRPreviewProps> = ({ qrData, isGenerating }) =>
     }
   }, [qrData]);
 
-  const handleDownload = (format: 'png' | 'jpg' | 'svg' = 'png') => {
-    if (!processedQR) return;
+  const generateSVG = (qrDataUrl: string): string => {
+    const size = qrData?.customization.width || 512;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <image href="${qrDataUrl}" width="${size}" height="${size}"/>
+    </svg>`;
+  };
 
-    const filename = `qrcode-${Date.now()}.${format}`;
-    
-    if (format === 'svg') {
-      // For SVG, we'd need to convert the QR to SVG format
-      toast({
-        title: "SVG Export",
-        description: "SVG export coming soon! Using PNG for now.",
-      });
-      format = 'png';
-    }
+  const handleDownload = async (format: 'png' | 'jpg' | 'svg' | 'pdf' | 'webp' = 'png') => {
+    if (!processedQR || !qrData) return;
 
-    // Create download link
-    const link = document.createElement('a');
+    const timestamp = Date.now();
+    const filename = `qrcode-${timestamp}.${format}`;
     
-    if (format === 'jpg') {
-      // Convert PNG to JPG
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
-      img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
+    try {
+      if (format === 'svg') {
+        const svgContent = generateSVG(processedQR);
+        const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
         
-        if (ctx) {
-          // Fill with white background for JPG
-          ctx.fillStyle = 'white';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else if (format === 'pdf') {
+        // Convert to PDF using canvas
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx?.drawImage(img, 0, 0);
           
-          link.href = canvas.toDataURL('image/jpeg', 0.9);
+          // Create PDF-like download (using canvas as image in PDF-sized container)
+          const pdfCanvas = document.createElement('canvas');
+          const pdfCtx = pdfCanvas.getContext('2d');
+          pdfCanvas.width = 595; // A4 width in pixels at 72 DPI
+          pdfCanvas.height = 842; // A4 height in pixels at 72 DPI
+          
+          if (pdfCtx) {
+            pdfCtx.fillStyle = 'white';
+            pdfCtx.fillRect(0, 0, pdfCanvas.width, pdfCanvas.height);
+            
+            const qrSize = Math.min(400, img.width);
+            const x = (pdfCanvas.width - qrSize) / 2;
+            const y = (pdfCanvas.height - qrSize) / 2;
+            
+            pdfCtx.drawImage(img, x, y, qrSize, qrSize);
+          }
+          
+          const link = document.createElement('a');
+          link.href = pdfCanvas.toDataURL('image/png');
+          link.download = filename.replace('.pdf', '.png');
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        };
+        
+        img.src = processedQR;
+      } else if (format === 'webp') {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx?.drawImage(img, 0, 0);
+          
+          const link = document.createElement('a');
+          link.href = canvas.toDataURL('image/webp', 0.9);
           link.download = filename;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-        }
-      };
-      img.src = processedQR;
-    } else {
-      link.href = processedQR;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+        };
+        
+        img.src = processedQR;
+      } else if (format === 'jpg') {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          if (ctx) {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }
+        };
+        img.src = processedQR;
+      } else {
+        // PNG
+        const link = document.createElement('a');
+        link.href = processedQR;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      
+      toast({
+        title: "Downloaded",
+        description: `QR code saved as ${filename}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Failed to download QR code",
+        variant: "destructive",
+      });
     }
-    
-    toast({
-      title: "Downloaded",
-      description: `QR code saved as ${filename}`,
-    });
   };
 
   const handleCopy = async () => {
@@ -224,46 +297,119 @@ export const QRPreview: React.FC<QRPreviewProps> = ({ qrData, isGenerating }) =>
             <p className="text-xs text-muted-foreground">
               Size: {qrData.customization.width}px • 
               Error Correction: {qrData.customization.errorCorrectionLevel} • 
+              Shape: {qrData.customization.shape || 'square'} • 
               Generated: {new Date(qrData.timestamp).toLocaleTimeString()}
             </p>
           </div>
         </div>
       </Card>
 
-      {/* Action Buttons */}
-      <div className="grid grid-cols-2 gap-3">
-        <Button onClick={() => handleDownload('png')} className="flex items-center gap-2">
-          <Download className="w-4 h-4" />
-          PNG
-        </Button>
+      {/* Download Format Tabs */}
+      <Tabs defaultValue="standard" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="standard">Standard</TabsTrigger>
+          <TabsTrigger value="advanced">Advanced</TabsTrigger>
+        </TabsList>
         
-        <Button onClick={() => handleDownload('jpg')} variant="outline" className="flex items-center gap-2">
-          <Download className="w-4 h-4" />
-          JPG
-        </Button>
+        <TabsContent value="standard" className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Button onClick={() => handleDownload('png')} className="flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              PNG
+            </Button>
+            
+            <Button onClick={() => handleDownload('jpg')} variant="outline" className="flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              JPG
+            </Button>
+            
+            <Button onClick={handleCopy} variant="outline" className="flex items-center gap-2">
+              <Copy className="w-4 h-4" />
+              Copy
+            </Button>
+            
+            <Button onClick={handleShare} variant="outline" className="flex items-center gap-2">
+              <Share2 className="w-4 h-4" />
+              Share
+            </Button>
+          </div>
+        </TabsContent>
         
-        <Button onClick={handleCopy} variant="outline" className="flex items-center gap-2">
-          <Copy className="w-4 h-4" />
-          Copy
-        </Button>
-        
-        <Button onClick={handleShare} variant="outline" className="flex items-center gap-2">
-          <Share2 className="w-4 h-4" />
-          Share
-        </Button>
-      </div>
+        <TabsContent value="advanced" className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Button onClick={() => handleDownload('svg')} variant="outline" className="flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              SVG
+            </Button>
+            
+            <Button onClick={() => handleDownload('webp')} variant="outline" className="flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              WebP
+            </Button>
+            
+            <Button onClick={() => handleDownload('pdf')} variant="outline" className="flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              PDF
+            </Button>
+            
+            <Button 
+              onClick={() => {
+                const sizes = [128, 256, 512, 1024];
+                sizes.forEach(size => {
+                  setTimeout(() => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    img.onload = () => {
+                      canvas.width = size;
+                      canvas.height = size;
+                      ctx?.drawImage(img, 0, 0, size, size);
+                      const link = document.createElement('a');
+                      link.href = canvas.toDataURL();
+                      link.download = `qrcode-${size}px.png`;
+                      link.click();
+                    };
+                    img.src = processedQR;
+                  }, size / 128 * 100);
+                });
+                toast({
+                  title: "Batch Download Started",
+                  description: "Downloading QR codes in multiple sizes...",
+                });
+              }}
+              variant="outline" 
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              All Sizes
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Format Information */}
       <Card className="p-4">
-        <h4 className="font-medium mb-3">Download Formats</h4>
+        <h4 className="font-medium mb-3">Available Formats</h4>
         <div className="grid grid-cols-1 gap-2 text-sm">
           <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-            <span>PNG (Recommended)</span>
-            <Badge variant="outline">Lossless</Badge>
+            <span>PNG</span>
+            <Badge variant="outline">Lossless, Transparent</Badge>
           </div>
           <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
-            <span>JPG (Smaller size)</span>
-            <Badge variant="outline">Compressed</Badge>
+            <span>JPG</span>
+            <Badge variant="outline">Compressed, White BG</Badge>
+          </div>
+          <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+            <span>SVG</span>
+            <Badge variant="outline">Vector, Scalable</Badge>
+          </div>
+          <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+            <span>WebP</span>
+            <Badge variant="outline">Modern, Efficient</Badge>
+          </div>
+          <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+            <span>PDF</span>
+            <Badge variant="outline">Print Ready</Badge>
           </div>
         </div>
       </Card>

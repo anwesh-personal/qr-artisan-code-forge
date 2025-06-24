@@ -10,6 +10,12 @@ export interface QROptions {
   width: number;
   logo?: string;
   shape?: 'square' | 'circle' | 'rounded-square' | 'heart' | 'star' | 'diamond' | 'hexagon' | 'octagon' | 'triangle' | 'cross' | 'arrow' | 'shield' | 'leaf' | 'flower' | 'spiral';
+  gradientColors?: string[];
+  gradientDirection?: 'horizontal' | 'vertical' | 'diagonal';
+  cornerStyle?: 'square' | 'rounded' | 'circle';
+  patternStyle?: 'square' | 'circle' | 'rounded';
+  backgroundColor?: string;
+  foregroundColor?: string;
 }
 
 export const generateQRCode = async (
@@ -22,7 +28,10 @@ export const generateQRCode = async (
     const qrOptions = {
       errorCorrectionLevel: options.errorCorrectionLevel,
       margin: options.margin,
-      color: options.color,
+      color: {
+        dark: options.foregroundColor || options.color.dark,
+        light: options.backgroundColor || options.color.light,
+      },
       width: options.width,
       rendererOpts: {
         quality: 1
@@ -31,6 +40,17 @@ export const generateQRCode = async (
 
     // Generate base QR code
     let qrCodeDataUrl = await QRCode.toDataURL(text, qrOptions);
+    
+    // Apply gradient if specified
+    if (options.gradientColors && options.gradientColors.length > 1) {
+      qrCodeDataUrl = await applyGradient(qrCodeDataUrl, options.gradientColors, options.gradientDirection || 'diagonal');
+    }
+    
+    // Apply pattern and corner styles
+    if (options.patternStyle && options.patternStyle !== 'square' || 
+        options.cornerStyle && options.cornerStyle !== 'square') {
+      qrCodeDataUrl = await applyPatternAndCornerStyles(qrCodeDataUrl, options.patternStyle, options.cornerStyle);
+    }
     
     // Apply shape transformation if specified
     if (options.shape && options.shape !== 'square') {
@@ -49,13 +69,133 @@ export const generateQRCode = async (
   }
 };
 
+const applyGradient = async (qrCodeDataUrl: string, colors: string[], direction: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(qrCodeDataUrl);
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        // Create gradient
+        let gradient;
+        switch (direction) {
+          case 'horizontal':
+            gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            break;
+          case 'vertical':
+            gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            break;
+          case 'diagonal':
+          default:
+            gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            break;
+        }
+        
+        colors.forEach((color, index) => {
+          gradient.addColorStop(index / (colors.length - 1), color);
+        });
+        
+        // Draw original QR code
+        ctx.drawImage(img, 0, 0);
+        
+        // Apply gradient only to dark pixels
+        ctx.globalCompositeOperation = 'source-in';
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Restore original light pixels
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.drawImage(img, 0, 0);
+        
+        resolve(canvas.toDataURL());
+      };
+      
+      img.onerror = () => {
+        console.warn('Failed to apply gradient, using original QR code');
+        resolve(qrCodeDataUrl);
+      };
+      
+      img.src = qrCodeDataUrl;
+    } catch (error) {
+      console.warn('Failed to apply gradient:', error);
+      resolve(qrCodeDataUrl);
+    }
+  });
+};
+
+const applyPatternAndCornerStyles = async (qrCodeDataUrl: string, patternStyle?: string, cornerStyle?: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(qrCodeDataUrl);
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        // Draw original QR code first
+        ctx.drawImage(img, 0, 0);
+        
+        // Apply pattern/corner modifications
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Simple pattern modification (this is a basic implementation)
+        if (patternStyle === 'circle' || cornerStyle === 'circle') {
+          // Apply circular modifications to dark pixels
+          for (let y = 0; y < canvas.height; y += 4) {
+            for (let x = 0; x < canvas.width; x += 4) {
+              const index = (y * canvas.width + x) * 4;
+              if (data[index] < 128) { // Dark pixel
+                // Draw small circles instead of squares
+                ctx.fillStyle = `rgb(${data[index]}, ${data[index + 1]}, ${data[index + 2]})`;
+                ctx.beginPath();
+                ctx.arc(x + 2, y + 2, 1.5, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Clear original pixel
+                ctx.clearRect(x, y, 4, 4);
+              }
+            }
+          }
+        }
+        
+        resolve(canvas.toDataURL());
+      };
+      
+      img.onerror = () => {
+        console.warn('Failed to apply pattern styles, using original QR code');
+        resolve(qrCodeDataUrl);
+      };
+      
+      img.src = qrCodeDataUrl;
+    } catch (error) {
+      console.warn('Failed to apply pattern styles:', error);
+      resolve(qrCodeDataUrl);
+    }
+  });
+};
+
 const applyQRShape = async (qrCodeDataUrl: string, shape: string): Promise<string> => {
   return new Promise((resolve, reject) => {
     try {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) {
-        resolve(qrCodeDataUrl); // Fallback to original QR if canvas fails
+        resolve(qrCodeDataUrl);
         return;
       }
 
@@ -79,7 +219,7 @@ const applyQRShape = async (qrCodeDataUrl: string, shape: string): Promise<strin
             break;
           case 'rounded-square':
             const cornerRadius = radius * 0.2;
-            ctx.roundRect(centerX - radius, centerY - radius, radius * 2, radius * 2, cornerRadius);
+            roundRect(ctx, centerX - radius, centerY - radius, radius * 2, radius * 2, cornerRadius);
             break;
           case 'heart':
             drawHeart(ctx, centerX, centerY, radius);
@@ -99,10 +239,27 @@ const applyQRShape = async (qrCodeDataUrl: string, shape: string): Promise<strin
           case 'triangle':
             drawPolygon(ctx, centerX, centerY, radius, 3);
             break;
+          case 'cross':
+            drawCross(ctx, centerX, centerY, radius);
+            break;
+          case 'arrow':
+            drawArrow(ctx, centerX, centerY, radius);
+            break;
+          case 'shield':
+            drawShield(ctx, centerX, centerY, radius);
+            break;
+          case 'leaf':
+            drawLeaf(ctx, centerX, centerY, radius);
+            break;
+          case 'flower':
+            drawFlower(ctx, centerX, centerY, radius);
+            break;
+          case 'spiral':
+            drawSpiral(ctx, centerX, centerY, radius);
+            break;
           default:
-            // For other shapes, use rounded square as fallback
             const defaultRadius = radius * 0.1;
-            ctx.roundRect(centerX - radius, centerY - radius, radius * 2, radius * 2, defaultRadius);
+            roundRect(ctx, centerX - radius, centerY - radius, radius * 2, radius * 2, defaultRadius);
         }
         
         ctx.clip();
@@ -120,9 +277,22 @@ const applyQRShape = async (qrCodeDataUrl: string, shape: string): Promise<strin
       img.src = qrCodeDataUrl;
     } catch (error) {
       console.warn('Failed to apply shape:', error);
-      resolve(qrCodeDataUrl); // Fallback to original QR
+      resolve(qrCodeDataUrl);
     }
   });
+};
+
+// Helper function for rounded rectangles
+const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) => {
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
 };
 
 const drawHeart = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
@@ -175,13 +345,93 @@ const drawPolygon = (ctx: CanvasRenderingContext2D, x: number, y: number, radius
   ctx.closePath();
 };
 
+const drawCross = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  const thickness = size * 0.3;
+  ctx.rect(x - thickness / 2, y - size, thickness, size * 2);
+  ctx.rect(x - size, y - thickness / 2, size * 2, thickness);
+};
+
+const drawArrow = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  ctx.moveTo(x - size, y - size * 0.3);
+  ctx.lineTo(x + size * 0.3, y - size * 0.3);
+  ctx.lineTo(x + size * 0.3, y - size * 0.6);
+  ctx.lineTo(x + size, y);
+  ctx.lineTo(x + size * 0.3, y + size * 0.6);
+  ctx.lineTo(x + size * 0.3, y + size * 0.3);
+  ctx.lineTo(x - size, y + size * 0.3);
+  ctx.closePath();
+};
+
+const drawShield = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  ctx.moveTo(x, y - size);
+  ctx.lineTo(x + size * 0.7, y - size * 0.7);
+  ctx.lineTo(x + size * 0.7, y + size * 0.3);
+  ctx.quadraticCurveTo(x + size * 0.7, y + size, x, y + size);
+  ctx.quadraticCurveTo(x - size * 0.7, y + size, x - size * 0.7, y + size * 0.3);
+  ctx.lineTo(x - size * 0.7, y - size * 0.7);
+  ctx.closePath();
+};
+
+const drawLeaf = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  ctx.moveTo(x, y + size);
+  ctx.quadraticCurveTo(x - size, y, x, y - size);
+  ctx.quadraticCurveTo(x + size, y, x, y + size);
+};
+
+const drawFlower = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  const petalCount = 6;
+  const petalSize = size * 0.6;
+  
+  for (let i = 0; i < petalCount; i++) {
+    const angle = (i * 2 * Math.PI) / petalCount;
+    const petalX = x + Math.cos(angle) * petalSize * 0.5;
+    const petalY = y + Math.sin(angle) * petalSize * 0.5;
+    
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(
+      petalX + Math.cos(angle + Math.PI / 2) * petalSize * 0.3,
+      petalY + Math.sin(angle + Math.PI / 2) * petalSize * 0.3,
+      petalX,
+      petalY
+    );
+    ctx.quadraticCurveTo(
+      petalX + Math.cos(angle - Math.PI / 2) * petalSize * 0.3,
+      petalY + Math.sin(angle - Math.PI / 2) * petalSize * 0.3,
+      x,
+      y
+    );
+  }
+  
+  ctx.arc(x, y, size * 0.2, 0, 2 * Math.PI);
+};
+
+const drawSpiral = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  const turns = 3;
+  const steps = 100;
+  
+  ctx.moveTo(x, y);
+  
+  for (let i = 0; i <= steps; i++) {
+    const angle = (i / steps) * turns * 2 * Math.PI;
+    const radius = (i / steps) * size;
+    const spiralX = x + Math.cos(angle) * radius;
+    const spiralY = y + Math.sin(angle) * radius;
+    ctx.lineTo(spiralX, spiralY);
+  }
+  
+  // Create a thick spiral by drawing multiple paths
+  ctx.lineWidth = size * 0.1;
+  ctx.stroke();
+  ctx.fill();
+};
+
 const embedLogoInQR = async (qrCodeDataUrl: string, logoDataUrl: string): Promise<string> => {
   return new Promise((resolve, reject) => {
     try {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) {
-        resolve(qrCodeDataUrl); // Fallback to original QR if canvas fails
+        resolve(qrCodeDataUrl);
         return;
       }
 
@@ -190,21 +440,17 @@ const embedLogoInQR = async (qrCodeDataUrl: string, logoDataUrl: string): Promis
         canvas.width = qrImage.width;
         canvas.height = qrImage.height;
         
-        // Draw QR code
         ctx.drawImage(qrImage, 0, 0);
         
         const logoImage = new Image();
         logoImage.onload = () => {
-          // Calculate logo size (20% of QR code size)
           const logoSize = Math.min(qrImage.width, qrImage.height) * 0.2;
           const logoX = (qrImage.width - logoSize) / 2;
           const logoY = (qrImage.height - logoSize) / 2;
           
-          // Draw white background for logo
           ctx.fillStyle = 'white';
           ctx.fillRect(logoX - 5, logoY - 5, logoSize + 10, logoSize + 10);
           
-          // Draw logo
           ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
           
           resolve(canvas.toDataURL());
@@ -225,7 +471,7 @@ const embedLogoInQR = async (qrCodeDataUrl: string, logoDataUrl: string): Promis
       qrImage.src = qrCodeDataUrl;
     } catch (error) {
       console.warn('Failed to embed logo:', error);
-      resolve(qrCodeDataUrl); // Fallback to original QR
+      resolve(qrCodeDataUrl);
     }
   });
 };
