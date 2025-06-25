@@ -1,3 +1,4 @@
+
 import QRCode from 'qrcode';
 
 export interface QROptions {
@@ -9,6 +10,8 @@ export interface QROptions {
   };
   width: number;
   logo?: string;
+  logoSize?: number;
+  cornerRadius?: number;
   shape?: 'square' | 'circle' | 'rounded-square' | 'heart' | 'star' | 'diamond' | 'hexagon' | 'octagon' | 'triangle' | 'cross' | 'arrow' | 'shield' | 'leaf' | 'flower' | 'spiral';
   gradientColors?: string[];
   gradientDirection?: 'horizontal' | 'vertical' | 'diagonal';
