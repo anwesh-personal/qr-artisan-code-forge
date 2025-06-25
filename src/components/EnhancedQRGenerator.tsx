@@ -20,7 +20,9 @@ import {
   Settings,
   Zap,
   Layers,
-  Image
+  Image,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { QROptions, generateQRCode } from '@/utils/qrGenerator';
@@ -35,6 +37,7 @@ import { DonationCard } from './DonationCard';
 import { BatchGenerator } from './BatchGenerator';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from 'next-themes';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 export interface EnhancedQRData {
   id: string;
@@ -117,8 +120,10 @@ export const EnhancedQRGenerator: React.FC = () => {
   const [qrData, setQrData] = useState<EnhancedQRData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState<EnhancedQRData[]>([]);
-  const [activeFeatures, setActiveFeatures] = useState<string[]>(['custom-branding']); // Enable by default
+  const [activeFeatures, setActiveFeatures] = useState<string[]>([]);
   const [currentTab, setCurrentTab] = useState('generator');
+  const [showCustomization, setShowCustomization] = useState(false);
+  const [inputData, setInputData] = useState<{content: string, type: string} | null>(null);
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
@@ -130,6 +135,7 @@ export const EnhancedQRGenerator: React.FC = () => {
       light: '#FFFFFF',
     },
     width: 512,
+    logo: 'https://anwe.sh/work/ologo.png', // Default branding logo
   };
 
   const [customization, setCustomization] = useState(defaultOptions);
@@ -163,12 +169,12 @@ export const EnhancedQRGenerator: React.FC = () => {
         // Draw the main QR code
         ctx.drawImage(img, 0, 0);
 
-        // Add "Created by anwe.sh" watermark
+        // Add "Powered by anwe.sh Quantum QR" watermark
         const fontSize = Math.max(10, img.width * 0.02);
         ctx.font = `${fontSize}px Arial`;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.textAlign = 'right';
-        ctx.fillText('Created by anwe.sh', img.width - 10, img.height - 10);
+        ctx.fillText('Powered by anwe.sh Quantum QR', img.width - 10, img.height - 10);
 
         resolve(canvas.toDataURL('image/png'));
       };
@@ -177,8 +183,12 @@ export const EnhancedQRGenerator: React.FC = () => {
     });
   };
 
-  const generateEnhancedQR = async (content: string, type: string) => {
-    if (!content.trim()) {
+  const handleInputComplete = (content: string, type: string) => {
+    setInputData({ content, type });
+  };
+
+  const generateEnhancedQR = async () => {
+    if (!inputData) {
       toast({
         title: "Error",
         description: "Please enter content to generate QR code",
@@ -192,17 +202,15 @@ export const EnhancedQRGenerator: React.FC = () => {
     try {
       console.log('Generating QR with customization:', customization);
       
-      const qrCode = await generateQRCode(content, customization);
+      const qrCode = await generateQRCode(inputData.content, customization);
       
-      // Add watermark if custom branding is enabled
-      const finalQRCode = activeFeatures.includes('custom-branding') 
-        ? await addWatermark(qrCode)
-        : qrCode;
+      // Always add watermark with branding
+      const finalQRCode = await addWatermark(qrCode);
       
       const newQRData: EnhancedQRData = {
         id: Date.now().toString(),
-        type,
-        content,
+        type: inputData.type,
+        content: inputData.content,
         customization: { ...customization },
         qrCode: finalQRCode,
         timestamp: Date.now(),
@@ -222,9 +230,7 @@ export const EnhancedQRGenerator: React.FC = () => {
 
       toast({
         title: "✨ QR Code Generated!",
-        description: activeFeatures.includes('custom-branding') 
-          ? "Your branded QR code is ready for download"
-          : "Your QR code is ready for download",
+        description: "Your branded QR code is ready for download",
       });
     } catch (error) {
       console.error('Error generating QR code:', error);
@@ -258,17 +264,17 @@ export const EnhancedQRGenerator: React.FC = () => {
           : prev.filter(id => id !== featureId)
       );
 
+      // Update customization to show/hide logo options
+      if (isActivating) {
+        setCustomization(prev => ({ ...prev, logo: 'https://anwe.sh/work/ologo.png' }));
+      }
+
       toast({
         title: isActivating ? "Custom Branding Enabled" : "Custom Branding Disabled",
         description: isActivating 
-          ? "Your QR codes will now include 'Created by anwe.sh' watermark and support logo embedding"
-          : "QR codes will be generated without branding watermark",
+          ? "You can now add your logo and website URL"
+          : "Using default Quantum QR branding",
       });
-
-      // Regenerate current QR if exists
-      if (qrData) {
-        generateEnhancedQR(qrData.content, qrData.type);
-      }
       
       return;
     }
@@ -282,7 +288,6 @@ export const EnhancedQRGenerator: React.FC = () => {
     if (featureId === 'batch-processing') {
       setCurrentTab('batch');
     } else if (featureId === 'picture-to-qr') {
-      // Navigate to Picture QR page
       window.open('/picture-qr', '_blank');
     } else if (featureId === 'multiple-formats') {
       toast({
@@ -327,45 +332,42 @@ export const EnhancedQRGenerator: React.FC = () => {
           className="mb-8 text-center relative"
           variants={itemVariants}
         >
-          <div className="absolute top-0 right-0 flex items-center gap-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/about" className="flex items-center gap-2">
-                <Info className="w-4 h-4" />
-                About
+          <div className="absolute top-0 right-0 flex items-center gap-2 sm:gap-4">
+            <Button variant="ghost" size="sm" asChild className="text-xs sm:text-sm">
+              <Link to="/about" className="flex items-center gap-1 sm:gap-2">
+                <Info className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">About</span>
               </Link>
             </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/picture-qr" className="flex items-center gap-2">
-                <Image className="w-4 h-4" />
-                Picture QR
+            <Button variant="ghost" size="sm" asChild className="text-xs sm:text-sm">
+              <Link to="/picture-qr" className="flex items-center gap-1 sm:gap-2">
+                <Image className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Picture QR</span>
               </Link>
             </Button>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Dark Mode</span>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className="text-xs sm:text-sm font-medium hidden sm:inline">Dark</span>
               <Switch 
                 checked={theme === 'dark'} 
                 onCheckedChange={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="data-[state=checked]:bg-purple-600"
+                className="data-[state=checked]:bg-purple-600 scale-75 sm:scale-100"
               />
             </div>
           </div>
           
           <motion.div className="flex items-center justify-center gap-3 mb-4">
             <motion.h1 
-              className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-500 bg-clip-text text-transparent"
+              className="text-3xl sm:text-4xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-500 bg-clip-text text-transparent"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.8 }}
             >
               Quantum QR
             </motion.h1>
-            <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
-              Free Forever
-            </Badge>
           </motion.div>
           
           <motion.p 
-            className="text-lg md:text-xl text-muted-foreground mb-6"
+            className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6"
             variants={itemVariants}
           >
             Professional QR Code Generator with Advanced Customization
@@ -377,8 +379,8 @@ export const EnhancedQRGenerator: React.FC = () => {
           className="mb-8"
           variants={itemVariants}
         >
-          <h2 className="text-2xl font-bold mb-4 text-center">Professional Features</h2>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center">Professional Features</h2>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
             {workingFeatures.map((feature) => (
               <motion.div
                 key={feature.id}
@@ -389,7 +391,7 @@ export const EnhancedQRGenerator: React.FC = () => {
                   variant={activeFeatures.includes(feature.id) ? "default" : "outline"}
                   size="sm"
                   onClick={() => toggleFeature(feature.id)}
-                  className={`h-auto p-3 w-full ${
+                  className={`h-auto p-2 sm:p-3 w-full ${
                     activeFeatures.includes(feature.id) 
                       ? `bg-gradient-to-r ${feature.gradient} text-white border-0` 
                       : ''
@@ -397,8 +399,8 @@ export const EnhancedQRGenerator: React.FC = () => {
                   disabled={!feature.working}
                 >
                   <div className="flex flex-col items-center gap-1">
-                    <feature.icon className="w-4 h-4" />
-                    <span className="text-xs text-center leading-tight">
+                    <feature.icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="text-xs leading-tight text-center">
                       {feature.title.split(' ').slice(0, 2).join(' ')}
                     </span>
                   </div>
@@ -410,77 +412,111 @@ export const EnhancedQRGenerator: React.FC = () => {
 
         {/* Main Tabs */}
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-4">
-            <TabsTrigger value="generator" className="flex items-center gap-2">
-              <QrCode className="w-4 h-4" />
-              Generator
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="generator" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <QrCode className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Generator</span>
             </TabsTrigger>
-            <TabsTrigger value="batch" className="flex items-center gap-2">
-              <Layers className="w-4 h-4" />
-              Batch
+            <TabsTrigger value="batch" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Layers className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Batch</span>
             </TabsTrigger>
-            <TabsTrigger value="converter" className="flex items-center gap-2">
-              <Barcode className="w-4 h-4" />
-              Barcode
+            <TabsTrigger value="converter" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Barcode className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Barcode</span>
             </TabsTrigger>
-            <TabsTrigger value="gallery" className="flex items-center gap-2">
-              <Scan className="w-4 h-4" />
-              Gallery
+            <TabsTrigger value="gallery" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Scan className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Gallery</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="generator" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
               {/* Input Section */}
               <motion.div 
-                className="lg:col-span-1 space-y-6"
+                className="lg:col-span-1 space-y-4 sm:space-y-6"
                 variants={itemVariants}
               >
                 <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                       >
-                        <QrCode className="w-5 h-5 text-purple-500" />
+                        <QrCode className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
                       </motion.div>
                       Content Input
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <QRInput onGenerate={generateEnhancedQR} isLoading={isGenerating} />
+                    <QRInput onGenerate={handleInputComplete} isLoading={isGenerating} />
                   </CardContent>
                 </Card>
 
-                <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Settings className="w-5 h-5 text-blue-500" />
-                      Customization
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <AdvancedCustomization
-                      options={customization}
-                      onChange={setCustomization}
-                      onRegenerate={() => qrData && generateEnhancedQR(qrData.content, qrData.type)}
-                      hasQRCode={!!qrData}
-                      activeFeatures={activeFeatures}
-                    />
-                  </CardContent>
-                </Card>
+                {/* Collapsible Customization */}
+                {inputData && (
+                  <Collapsible open={showCustomization} onOpenChange={setShowCustomization}>
+                    <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="pb-3 cursor-pointer hover:bg-muted/20 transition-colors">
+                          <CardTitle className="flex items-center justify-between text-base sm:text-lg">
+                            <div className="flex items-center gap-2">
+                              <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+                              Customize Your QR
+                            </div>
+                            {showCustomization ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          </CardTitle>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent>
+                          <AdvancedCustomization
+                            options={customization}
+                            onChange={setCustomization}
+                            onRegenerate={() => qrData && generateEnhancedQR()}
+                            hasQRCode={!!qrData}
+                            activeFeatures={activeFeatures}
+                          />
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                )}
+
+                {/* Generate Button */}
+                {inputData && (
+                  <Button 
+                    onClick={generateEnhancedQR} 
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 text-base" 
+                    disabled={isGenerating}
+                    size="lg"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <QrCode className="w-4 h-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <QrCode className="w-4 h-4 mr-2" />
+                        Generate QR Code
+                      </>
+                    )}
+                  </Button>
+                )}
               </motion.div>
 
               {/* Preview Section */}
               <motion.div 
-                className="lg:col-span-2 space-y-6"
+                className="lg:col-span-2 space-y-4 sm:space-y-6"
                 variants={itemVariants}
               >
                 <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50 h-fit">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Eye className="w-5 h-5 text-green-500" />
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
                       Preview & Download
                     </CardTitle>
                   </CardHeader>
@@ -495,9 +531,9 @@ export const EnhancedQRGenerator: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                   >
                     <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Palette className="w-5 h-5 text-purple-500" />
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                          <Palette className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
                           Beautiful Card Preview
                         </CardTitle>
                       </CardHeader>
@@ -511,13 +547,13 @@ export const EnhancedQRGenerator: React.FC = () => {
 
               {/* Analytics & History Section */}
               <motion.div 
-                className="lg:col-span-1 space-y-6"
+                className="lg:col-span-1 space-y-4 sm:space-y-6"
                 variants={itemVariants}
               >
                 <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Scan className="w-5 h-5 text-orange-500" />
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <Scan className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
                       Analytics
                     </CardTitle>
                   </CardHeader>
@@ -527,9 +563,9 @@ export const EnhancedQRGenerator: React.FC = () => {
                 </Card>
 
                 <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Globe className="w-5 h-5 text-teal-500" />
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <Globe className="w-4 h-4 sm:w-5 sm:h-5 text-teal-500" />
                       History
                     </CardTitle>
                   </CardHeader>
@@ -539,6 +575,7 @@ export const EnhancedQRGenerator: React.FC = () => {
                       onLoad={(data) => {
                         setQrData(data);
                         setCustomization(data.customization);
+                        setInputData({ content: data.content, type: data.type });
                       }} 
                     />
                   </CardContent>
@@ -559,11 +596,11 @@ export const EnhancedQRGenerator: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="gallery">
-            <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50 p-8">
+            <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50 p-4 sm:p-8">
               <CardContent className="text-center space-y-4">
-                <Scan className="w-16 h-16 mx-auto text-muted-foreground" />
-                <h3 className="text-2xl font-bold">QR Gallery</h3>
-                <p className="text-muted-foreground">
+                <Scan className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-muted-foreground" />
+                <h3 className="text-xl sm:text-2xl font-bold">QR Gallery</h3>
+                <p className="text-muted-foreground text-sm sm:text-base">
                   View and manage all your created QR codes in one place.
                 </p>
                 <SmartQRHistory 
@@ -571,6 +608,7 @@ export const EnhancedQRGenerator: React.FC = () => {
                   onLoad={(data) => {
                     setQrData(data);
                     setCustomization(data.customization);
+                    setInputData({ content: data.content, type: data.type });
                     setCurrentTab('generator');
                   }} 
                   expanded={true}
@@ -586,10 +624,10 @@ export const EnhancedQRGenerator: React.FC = () => {
         <footer className="mt-16 py-8 border-t border-border/50">
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center gap-2">
-              <QrCode className="w-5 h-5 text-purple-500" />
-              <span className="font-semibold text-lg">Quantum QR</span>
+              <QrCode className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+              <span className="font-semibold text-base sm:text-lg">Quantum QR</span>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Powered by <a href="https://anwe.sh" target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:underline font-medium">anwe.sh</a>
             </p>
             <p className="text-xs text-muted-foreground">

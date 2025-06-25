@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -75,7 +76,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
     }
   };
 
-  const handleGenerate = () => {
+  const handleSetData = () => {
     let content = '';
     let type = activeTab;
 
@@ -109,16 +110,43 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
         break;
     }
 
-    onGenerate(content, type);
+    if (content.trim()) {
+      onGenerate(content, type);
+    }
   };
 
+  const getContent = () => {
+    switch (activeTab) {
+      case 'url':
+        return urlInput;
+      case 'text':
+        return textInput;
+      case 'file':
+        return fileContent;
+      case 'contact':
+        return contact.firstName || contact.lastName || contact.phone || contact.email;
+      case 'wifi':
+        return wifi.ssid;
+      case 'upi':
+        return upi.payeeId || upi.payeeName;
+      case 'sms':
+        return sms.phone || sms.message;
+      case 'email':
+        return email.to;
+      default:
+        return '';
+    }
+  };
+
+  const hasContent = !!getContent();
+
   const tabsConfig = [
-    { id: 'url', label: 'URL/Link', icon: Link },
+    { id: 'url', label: 'URL', icon: Link },
     { id: 'text', label: 'Text', icon: FileText },
     { id: 'file', label: 'File', icon: Upload },
     { id: 'contact', label: 'Contact', icon: User },
     { id: 'wifi', label: 'WiFi', icon: Wifi },
-    { id: 'upi', label: 'UPI Payment', icon: CreditCard },
+    { id: 'upi', label: 'UPI', icon: CreditCard },
     { id: 'sms', label: 'SMS', icon: MessageSquare },
     { id: 'email', label: 'Email', icon: Mail },
   ];
@@ -149,6 +177,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
             placeholder="https://example.com"
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
+            className="text-base"
           />
         </TabsContent>
 
@@ -160,6 +189,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
             rows={4}
+            className="text-base"
           />
         </TabsContent>
 
@@ -167,7 +197,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
           <Label>Upload File</Label>
           <Card className="border-dashed border-2 p-4">
             <div className="text-center">
-              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+              <Upload className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-muted-foreground" />
               <Input
                 type="file"
                 onChange={handleFileUpload}
@@ -196,6 +226,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
                 id="firstName"
                 value={contact.firstName}
                 onChange={(e) => setContact({ ...contact, firstName: e.target.value })}
+                className="text-base"
               />
             </div>
             <div>
@@ -204,6 +235,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
                 id="lastName"
                 value={contact.lastName}
                 onChange={(e) => setContact({ ...contact, lastName: e.target.value })}
+                className="text-base"
               />
             </div>
           </div>
@@ -213,6 +245,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
               id="phone"
               value={contact.phone}
               onChange={(e) => setContact({ ...contact, phone: e.target.value })}
+              className="text-base"
             />
           </div>
           <div>
@@ -222,6 +255,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
               type="email"
               value={contact.email}
               onChange={(e) => setContact({ ...contact, email: e.target.value })}
+              className="text-base"
             />
           </div>
           <div>
@@ -230,6 +264,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
               id="organization"
               value={contact.organization}
               onChange={(e) => setContact({ ...contact, organization: e.target.value })}
+              className="text-base"
             />
           </div>
         </TabsContent>
@@ -241,6 +276,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
               id="ssid"
               value={wifi.ssid}
               onChange={(e) => setWifi({ ...wifi, ssid: e.target.value })}
+              className="text-base"
             />
           </div>
           <div>
@@ -250,6 +286,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
               type="password"
               value={wifi.password}
               onChange={(e) => setWifi({ ...wifi, password: e.target.value })}
+              className="text-base"
             />
           </div>
           <div>
@@ -275,6 +312,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
               placeholder="username@upi"
               value={upi.payeeId}
               onChange={(e) => setUpi({ ...upi, payeeId: e.target.value })}
+              className="text-base"
             />
           </div>
           <div>
@@ -283,6 +321,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
               id="payeeName"
               value={upi.payeeName}
               onChange={(e) => setUpi({ ...upi, payeeName: e.target.value })}
+              className="text-base"
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -294,6 +333,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
                 step="0.01"
                 value={upi.amount}
                 onChange={(e) => setUpi({ ...upi, amount: e.target.value })}
+                className="text-base"
               />
             </div>
             <div>
@@ -316,6 +356,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
               id="note"
               value={upi.note}
               onChange={(e) => setUpi({ ...upi, note: e.target.value })}
+              className="text-base"
             />
           </div>
         </TabsContent>
@@ -327,6 +368,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
               id="smsPhone"
               value={sms.phone}
               onChange={(e) => setSms({ ...sms, phone: e.target.value })}
+              className="text-base"
             />
           </div>
           <div>
@@ -336,6 +378,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
               value={sms.message}
               onChange={(e) => setSms({ ...sms, message: e.target.value })}
               rows={3}
+              className="text-base"
             />
           </div>
         </TabsContent>
@@ -348,6 +391,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
               type="email"
               value={email.to}
               onChange={(e) => setEmail({ ...email, to: e.target.value })}
+              className="text-base"
             />
           </div>
           <div>
@@ -356,6 +400,7 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
               id="emailSubject"
               value={email.subject}
               onChange={(e) => setEmail({ ...email, subject: e.target.value })}
+              className="text-base"
             />
           </div>
           <div>
@@ -365,28 +410,21 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
               value={email.body}
               onChange={(e) => setEmail({ ...email, body: e.target.value })}
               rows={3}
+              className="text-base"
             />
           </div>
         </TabsContent>
       </Tabs>
 
-      <Button 
-        onClick={handleGenerate} 
-        className="w-full" 
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <>
-            <QrCode className="w-4 h-4 mr-2 animate-spin" />
-            Generating...
-          </>
-        ) : (
-          <>
-            <QrCode className="w-4 h-4 mr-2" />
-            Generate QR Code
-          </>
-        )}
-      </Button>
+      {hasContent && (
+        <Button 
+          onClick={handleSetData}
+          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold" 
+          disabled={isLoading}
+        >
+          Set QR Content
+        </Button>
+      )}
     </div>
   );
 };
