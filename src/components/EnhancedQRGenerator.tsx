@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,7 +33,6 @@ import { CustomizableCard } from './CustomizableCard';
 import { BarcodeConverter } from './BarcodeConverter';
 import { DonationCard } from './DonationCard';
 import { BatchGenerator } from './BatchGenerator';
-import { PictureToQR } from './PictureToQR';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from 'next-themes';
 
@@ -117,7 +117,7 @@ export const EnhancedQRGenerator: React.FC = () => {
   const [qrData, setQrData] = useState<EnhancedQRData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState<EnhancedQRData[]>([]);
-  const [activeFeatures, setActiveFeatures] = useState<string[]>([]);
+  const [activeFeatures, setActiveFeatures] = useState<string[]>(['custom-branding']); // Enable by default
   const [currentTab, setCurrentTab] = useState('generator');
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
@@ -145,6 +145,38 @@ export const EnhancedQRGenerator: React.FC = () => {
     }
   }, []);
 
+  const addWatermark = (imageDataUrl: string): Promise<string> => {
+    return new Promise<string>((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = document.createElement('img');
+
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        if (!ctx) {
+          resolve(imageDataUrl);
+          return;
+        }
+
+        // Draw the main QR code
+        ctx.drawImage(img, 0, 0);
+
+        // Add "Created by anwe.sh" watermark
+        const fontSize = Math.max(10, img.width * 0.02);
+        ctx.font = `${fontSize}px Arial`;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.textAlign = 'right';
+        ctx.fillText('Created by anwe.sh', img.width - 10, img.height - 10);
+
+        resolve(canvas.toDataURL('image/png'));
+      };
+      
+      img.src = imageDataUrl;
+    });
+  };
+
   const generateEnhancedQR = async (content: string, type: string) => {
     if (!content.trim()) {
       toast({
@@ -162,12 +194,17 @@ export const EnhancedQRGenerator: React.FC = () => {
       
       const qrCode = await generateQRCode(content, customization);
       
+      // Add watermark if custom branding is enabled
+      const finalQRCode = activeFeatures.includes('custom-branding') 
+        ? await addWatermark(qrCode)
+        : qrCode;
+      
       const newQRData: EnhancedQRData = {
         id: Date.now().toString(),
         type,
         content,
         customization: { ...customization },
-        qrCode,
+        qrCode: finalQRCode,
         timestamp: Date.now(),
         analytics: {
           scans: 0,
@@ -185,7 +222,9 @@ export const EnhancedQRGenerator: React.FC = () => {
 
       toast({
         title: "✨ QR Code Generated!",
-        description: "Your custom QR code is ready for download",
+        description: activeFeatures.includes('custom-branding') 
+          ? "Your branded QR code is ready for download"
+          : "Your QR code is ready for download",
       });
     } catch (error) {
       console.error('Error generating QR code:', error);
@@ -210,6 +249,30 @@ export const EnhancedQRGenerator: React.FC = () => {
       return;
     }
 
+    if (featureId === 'custom-branding') {
+      const isActivating = !activeFeatures.includes(featureId);
+      
+      setActiveFeatures(prev => 
+        isActivating 
+          ? [...prev, featureId]
+          : prev.filter(id => id !== featureId)
+      );
+
+      toast({
+        title: isActivating ? "Custom Branding Enabled" : "Custom Branding Disabled",
+        description: isActivating 
+          ? "Your QR codes will now include 'Created by anwe.sh' watermark and support logo embedding"
+          : "QR codes will be generated without branding watermark",
+      });
+
+      // Regenerate current QR if exists
+      if (qrData) {
+        generateEnhancedQR(qrData.content, qrData.type);
+      }
+      
+      return;
+    }
+
     setActiveFeatures(prev => 
       prev.includes(featureId) 
         ? prev.filter(id => id !== featureId)
@@ -219,11 +282,17 @@ export const EnhancedQRGenerator: React.FC = () => {
     if (featureId === 'batch-processing') {
       setCurrentTab('batch');
     } else if (featureId === 'picture-to-qr') {
-      window.location.href = '/picture-qr';
+      // Navigate to Picture QR page
+      window.open('/picture-qr', '_blank');
     } else if (featureId === 'multiple-formats') {
       toast({
         title: "Multiple Formats Enabled",
-        description: "You can now download QR codes in PNG, JPG, and SVG formats from the preview section",
+        description: "You can now download QR codes in PNG, JPG, SVG, WebP, and PDF formats from the preview section",
+      });
+    } else if (featureId === 'qr-shapes') {
+      toast({
+        title: "QR Shapes Enabled",
+        description: "You can now choose from 15 different QR code shapes in the customization panel",
       });
     }
   };
@@ -308,7 +377,7 @@ export const EnhancedQRGenerator: React.FC = () => {
           className="mb-8"
           variants={itemVariants}
         >
-          <h2 className="text-2xl font-bold mb-4 text-center">Working Features</h2>
+          <h2 className="text-2xl font-bold mb-4 text-center">Professional Features</h2>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             {workingFeatures.map((feature) => (
               <motion.div

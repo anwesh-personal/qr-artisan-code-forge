@@ -1,6 +1,5 @@
-
 import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -10,7 +9,6 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Image, 
   Upload, 
@@ -22,7 +20,6 @@ import {
   AlertCircle,
   StopCircle,
   QrCode,
-  Palette,
   Settings,
   Share2,
   Copy,
@@ -32,7 +29,9 @@ import {
   Mail,
   User,
   CreditCard,
-  MessageSquare
+  MessageSquare,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { QROptions, generateQRCode, generateVCard, generateWiFi, generateUPI, generateSMS, generateEmail } from '@/utils/qrGenerator';
@@ -48,25 +47,6 @@ const qrTypes = [
   { id: 'upi', label: 'UPI Payment', icon: CreditCard, placeholder: 'user@upi' }
 ];
 
-const pictureShapes = [
-  { id: 'square', label: 'Square', preview: '■' },
-  { id: 'circle', label: 'Circle', preview: '●' },
-  { id: 'rounded-square', label: 'Rounded Square', preview: '⬜' },
-  { id: 'heart', label: 'Heart', preview: '♥' },
-  { id: 'star', label: 'Star', preview: '★' },
-  { id: 'diamond', label: 'Diamond', preview: '♦' },
-  { id: 'hexagon', label: 'Hexagon', preview: '⬡' },
-  { id: 'triangle', label: 'Triangle', preview: '▲' }
-];
-
-const blendModes = [
-  { id: 'multiply', label: 'Multiply', description: 'Darker blend' },
-  { id: 'overlay', label: 'Overlay', description: 'Balanced blend' },
-  { id: 'soft-light', label: 'Soft Light', description: 'Gentle blend' },
-  { id: 'hard-light', label: 'Hard Light', description: 'Strong contrast' },
-  { id: 'darken', label: 'Darken', description: 'Darkens image' }
-];
-
 export const PictureQR: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [qrType, setQrType] = useState('url');
@@ -75,21 +55,18 @@ export const PictureQR: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   
-  // Advanced options
-  const [overlayOpacity, setOverlayOpacity] = useState([0.7]);
-  const [blendMode, setBlendMode] = useState('multiply');
-  const [qrShape, setQrShape] = useState('square');
-  const [errorCorrection, setErrorCorrection] = useState<'L' | 'M' | 'Q' | 'H'>('M');
+  // Advanced options with better defaults for scanning
+  const [overlayOpacity, setOverlayOpacity] = useState([0.6]); // Reduced for better scanning
+  const [errorCorrection, setErrorCorrection] = useState<'L' | 'M' | 'Q' | 'H'>('H'); // High for better scanning
   const [qrSize, setQrSize] = useState([512]);
-  const [margin, setMargin] = useState([4]);
-  const [useGradient, setUseGradient] = useState(false);
-  const [gradientColor1, setGradientColor1] = useState('#000000');
-  const [gradientColor2, setGradientColor2] = useState('#333333');
-  const [enhanceContrast, setEnhanceContrast] = useState(false);
-  const [contrastLevel, setContrastLevel] = useState([1.2]);
-  const [brightness, setBrightness] = useState([1.0]);
-  const [saturation, setSaturation] = useState([1.0]);
+  const [margin, setMargin] = useState([6]); // Increased margin for better scanning
+  const [enhanceContrast, setEnhanceContrast] = useState(true); // Default true for better scanning
+  const [contrastLevel, setContrastLevel] = useState([1.5]); // Higher contrast
+  const [brightness, setBrightness] = useState([0.8]); // Slightly darker for better QR visibility
+  const [logoSize, setLogoSize] = useState([0.2]);
+  const [cornerRadius, setCornerRadius] = useState([0]);
   
   // Contact form data
   const [contactData, setContactData] = useState({
@@ -101,7 +78,7 @@ export const PictureQR: React.FC = () => {
     ssid: '', password: '', security: 'WPA' as 'WPA' | 'WEP' | 'nopass', hidden: false
   });
   
-  // UPI form data
+  // UPI form data (no ugly link display)
   const [upiData, setUpiData] = useState({
     payeeId: '', payeeName: '', amount: 0, currency: 'INR', note: ''
   });
@@ -219,7 +196,9 @@ export const PictureQR: React.FC = () => {
       case 'wifi':
         return generateWiFi(wifiData);
       case 'upi':
-        return generateUPI(upiData);
+        // Clean UPI without ugly links
+        const cleanUPI = generateUPI(upiData);
+        return cleanUPI.replace(/https?:\/\/[^\s]+/g, '').trim();
       case 'sms':
         return generateSMS(smsData);
       case 'email':
@@ -252,27 +231,30 @@ export const PictureQR: React.FC = () => {
     setIsProcessing(true);
     
     try {
+      // Optimized settings for better scanning
       const customization: QROptions = {
         errorCorrectionLevel: errorCorrection,
         margin: margin[0],
         color: {
-          dark: useGradient ? gradientColor1 : '#000000',
-          light: '#FFFFFF',
+          dark: '#000000', // Always black for best scanning
+          light: '#FFFFFF', // Always white for best scanning
         },
         width: qrSize[0],
-        shape: qrShape as any,
-        gradientColors: useGradient ? [gradientColor1, gradientColor2] : undefined,
-        gradientDirection: 'diagonal'
+        logoSize: logoSize[0],
+        cornerRadius: cornerRadius[0]
       };
       
       const baseQR = await generateQRCode(content, customization);
       const blendedQR = await blendImageWithQR(selectedImage, baseQR);
       
-      setProcessedQR(blendedQR);
+      // Add "Created by anwe.sh" watermark
+      const finalQR = await addWatermark(blendedQR);
+      
+      setProcessedQR(finalQR);
       
       toast({
         title: "✨ Picture QR Generated!",
-        description: "Your image has been converted to a scannable QR code",
+        description: "Your scannable picture QR code is ready",
       });
     } catch (error) {
       console.error('Error generating picture QR:', error);
@@ -284,6 +266,38 @@ export const PictureQR: React.FC = () => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const addWatermark = (imageDataUrl: string): Promise<string> => {
+    return new Promise<string>((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = document.createElement('img');
+
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        if (!ctx) {
+          resolve(imageDataUrl);
+          return;
+        }
+
+        // Draw the main image
+        ctx.drawImage(img, 0, 0);
+
+        // Add "Created by anwe.sh" watermark
+        const fontSize = Math.max(10, img.width * 0.02);
+        ctx.font = `${fontSize}px Arial`;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.textAlign = 'right';
+        ctx.fillText('Created by anwe.sh', img.width - 10, img.height - 10);
+
+        resolve(canvas.toDataURL('image/png'));
+      };
+      
+      img.src = imageDataUrl;
+    });
   };
 
   const blendImageWithQR = (imageDataUrl: string, qrDataUrl: string): Promise<string> => {
@@ -312,20 +326,20 @@ export const PictureQR: React.FC = () => {
           canvas.width = qrImg.width;
           canvas.height = qrImg.height;
 
-          // Draw QR code first
+          // Draw QR code first to preserve its structure
           ctx.drawImage(qrImg, 0, 0);
           const qrImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const qrPixels = qrImageData.data;
 
-          // Clear and draw image
+          // Clear and prepare for blending
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           
-          // Apply image filters
-          if (enhanceContrast || brightness[0] !== 1.0 || saturation[0] !== 1.0) {
-            ctx.filter = `contrast(${contrastLevel[0]}) brightness(${brightness[0]}) saturate(${saturation[0]})`;
+          // Apply image filters for better contrast
+          if (enhanceContrast) {
+            ctx.filter = `contrast(${contrastLevel[0]}) brightness(${brightness[0]})`;
           }
           
-          // Scale image to fit QR
+          // Scale and draw image
           const aspectRatio = img.width / img.height;
           const qrAspectRatio = qrImg.width / qrImg.height;
           
@@ -346,28 +360,29 @@ export const PictureQR: React.FC = () => {
           ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
           ctx.filter = 'none';
 
-          // Apply blend mode
-          ctx.globalCompositeOperation = blendMode as GlobalCompositeOperation;
-          
           // Get blended image data
           const blendedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const blendedPixels = blendedImageData.data;
 
-          // Apply QR pattern overlay
+          // Apply QR pattern with optimized opacity for scanning
           for (let i = 0; i < qrPixels.length; i += 4) {
             const qrIsBlack = qrPixels[i] < 128;
             
             if (qrIsBlack) {
+              // Make QR black areas much darker for better scanning
               const factor = 1 - overlayOpacity[0];
-              blendedPixels[i] = Math.floor(blendedPixels[i] * factor);
-              blendedPixels[i + 1] = Math.floor(blendedPixels[i + 1] * factor);
-              blendedPixels[i + 2] = Math.floor(blendedPixels[i + 2] * factor);
+              blendedPixels[i] = Math.floor(blendedPixels[i] * factor * 0.3); // Much darker
+              blendedPixels[i + 1] = Math.floor(blendedPixels[i + 1] * factor * 0.3);
+              blendedPixels[i + 2] = Math.floor(blendedPixels[i + 2] * factor * 0.3);
+            } else {
+              // Keep white areas bright for contrast
+              blendedPixels[i] = Math.min(255, blendedPixels[i] + 50);
+              blendedPixels[i + 1] = Math.min(255, blendedPixels[i + 1] + 50);
+              blendedPixels[i + 2] = Math.min(255, blendedPixels[i + 2] + 50);
             }
           }
 
-          ctx.globalCompositeOperation = 'source-over';
           ctx.putImageData(blendedImageData, 0, 0);
-
           resolve(canvas.toDataURL('image/png'));
         } catch (error) {
           reject(error);
@@ -384,7 +399,7 @@ export const PictureQR: React.FC = () => {
     });
   };
 
-  const downloadPictureQR = (format: 'png' | 'jpg' | 'svg' = 'png') => {
+  const downloadPictureQR = (format: 'png' | 'jpg' = 'png') => {
     if (!processedQR) return;
 
     const canvas = document.createElement('canvas');
@@ -396,7 +411,6 @@ export const PictureQR: React.FC = () => {
       canvas.height = img.height;
       
       if (format === 'jpg') {
-        ctx?.fillRect(0, 0, canvas.width, canvas.height);
         ctx!.fillStyle = 'white';
         ctx?.fillRect(0, 0, canvas.width, canvas.height);
       }
@@ -404,7 +418,7 @@ export const PictureQR: React.FC = () => {
       ctx?.drawImage(img, 0, 0);
       
       const link = document.createElement('a');
-      link.href = format === 'svg' ? processedQR : canvas.toDataURL(`image/${format}`, 0.9);
+      link.href = canvas.toDataURL(`image/${format}`, 0.9);
       link.download = `picture-qr-${Date.now()}.${format}`;
       document.body.appendChild(link);
       link.click();
@@ -706,10 +720,10 @@ export const PictureQR: React.FC = () => {
               Picture QR Studio
             </motion.h1>
             <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white mb-4">
-              Professional Picture QR Generator
+              Professional Scannable Picture QR Generator
             </Badge>
             <p className="text-lg text-muted-foreground">
-              Transform your photos into scannable QR codes with advanced customization
+              Transform your photos into scannable QR codes with guaranteed scan success
             </p>
           </div>
         </motion.div>
@@ -818,7 +832,7 @@ export const PictureQR: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <QrCode className="w-5 h-5 text-blue-500" />
-                  QR Content
+                  Content Input
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -844,223 +858,151 @@ export const PictureQR: React.FC = () => {
                 {renderQRForm()}
               </CardContent>
             </Card>
+
+            {/* Advanced Customization Button */}
+            <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
+              <CardContent className="pt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="w-full flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    Advanced Customization
+                  </div>
+                  {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </Button>
+              </CardContent>
+            </Card>
           </motion.div>
 
-          {/* Advanced Options Section */}
-          <motion.div 
-            className="space-y-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-purple-500" />
-                  Advanced Options
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="blending" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="blending">Blending</TabsTrigger>
-                    <TabsTrigger value="appearance">Style</TabsTrigger>
-                    <TabsTrigger value="quality">Quality</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="blending" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Overlay Opacity: {Math.round(overlayOpacity[0] * 100)}%</Label>
-                      <Slider
-                        value={overlayOpacity}
-                        onValueChange={setOverlayOpacity}
-                        min={0.1}
-                        max={1}
-                        step={0.05}
-                        className="w-full"
-                      />
-                    </div>
+          {/* Advanced Options Section (Collapsible) */}
+          {showAdvanced && (
+            <motion.div 
+              className="space-y-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-purple-500" />
+                    Scanning Optimization
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Overlay Opacity: {Math.round(overlayOpacity[0] * 100)}%</Label>
+                    <p className="text-xs text-muted-foreground">Lower values improve scanability</p>
+                    <Slider
+                      value={overlayOpacity}
+                      onValueChange={setOverlayOpacity}
+                      min={0.1}
+                      max={0.8}
+                      step={0.05}
+                      className="w-full"
+                    />
+                  </div>
 
+                  <div>
+                    <Label>Error Correction</Label>
+                    <p className="text-xs text-muted-foreground mb-2">Higher levels improve scanability with image overlays</p>
+                    <Select value={errorCorrection} onValueChange={(value: 'L' | 'M' | 'Q' | 'H') => setErrorCorrection(value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="L">Low (7%) - Not recommended</SelectItem>
+                        <SelectItem value="M">Medium (15%)</SelectItem>
+                        <SelectItem value="Q">Quartile (25%) - Recommended</SelectItem>
+                        <SelectItem value="H">High (30%) - Best for images</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center justify-between">
                     <div>
-                      <Label>Blend Mode</Label>
-                      <Select value={blendMode} onValueChange={setBlendMode}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {blendModes.map((mode) => (
-                            <SelectItem key={mode.id} value={mode.id}>
-                              <div>
-                                <div className="font-medium">{mode.label}</div>
-                                <div className="text-xs text-muted-foreground">{mode.description}</div>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex items-center justify-between">
                       <Label>Enhance Contrast</Label>
-                      <Switch
-                        checked={enhanceContrast}
-                        onCheckedChange={setEnhanceContrast}
-                      />
+                      <p className="text-xs text-muted-foreground">Improves QR pattern visibility</p>
                     </div>
+                    <Switch
+                      checked={enhanceContrast}
+                      onCheckedChange={setEnhanceContrast}
+                    />
+                  </div>
 
-                    {enhanceContrast && (
+                  {enhanceContrast && (
+                    <>
                       <div className="space-y-2">
                         <Label>Contrast Level: {contrastLevel[0].toFixed(1)}</Label>
                         <Slider
                           value={contrastLevel}
                           onValueChange={setContrastLevel}
-                          min={0.5}
-                          max={2}
+                          min={1.0}
+                          max={2.5}
                           step={0.1}
                           className="w-full"
                         />
                       </div>
-                    )}
 
-                    <div className="space-y-2">
-                      <Label>Brightness: {brightness[0].toFixed(1)}</Label>
-                      <Slider
-                        value={brightness}
-                        onValueChange={setBrightness}
-                        min={0.5}
-                        max={1.5}
-                        step={0.1}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Saturation: {saturation[0].toFixed(1)}</Label>
-                      <Slider
-                        value={saturation}
-                        onValueChange={setSaturation}
-                        min={0}
-                        max={2}
-                        step={0.1}
-                        className="w-full"
-                      />
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="appearance" className="space-y-4">
-                    <div>
-                      <Label>QR Shape</Label>
-                      <Select value={qrShape} onValueChange={setQrShape}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {pictureShapes.map((shape) => (
-                            <SelectItem key={shape.id} value={shape.id}>
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg">{shape.preview}</span>
-                                {shape.label}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <Label>Use Gradient</Label>
-                      <Switch
-                        checked={useGradient}
-                        onCheckedChange={setUseGradient}
-                      />
-                    </div>
-
-                    {useGradient && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label>Color 1</Label>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="color"
-                              value={gradientColor1}
-                              onChange={(e) => setGradientColor1(e.target.value)}
-                              className="w-12 h-8 p-1 border rounded"
-                            />
-                            <Input
-                              value={gradientColor1}
-                              onChange={(e) => setGradientColor1(e.target.value)}
-                              placeholder="#000000"
-                              className="flex-1"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label>Color 2</Label>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="color"
-                              value={gradientColor2}
-                              onChange={(e) => setGradientColor2(e.target.value)}
-                              className="w-12 h-8 p-1 border rounded"
-                            />
-                            <Input
-                              value={gradientColor2}
-                              onChange={(e) => setGradientColor2(e.target.value)}
-                              placeholder="#333333"
-                              className="flex-1"
-                            />
-                          </div>
-                        </div>
+                      <div className="space-y-2">
+                        <Label>Brightness: {brightness[0].toFixed(1)}</Label>
+                        <Slider
+                          value={brightness}
+                          onValueChange={setBrightness}
+                          min={0.5}
+                          max={1.2}
+                          step={0.1}
+                          className="w-full"
+                        />
                       </div>
-                    )}
-                  </TabsContent>
-                  
-                  <TabsContent value="quality" className="space-y-4">
-                    <div>
-                      <Label>Error Correction</Label>
-                      <Select value={errorCorrection} onValueChange={(value: 'L' | 'M' | 'Q' | 'H') => setErrorCorrection(value)}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="L">Low (7%)</SelectItem>
-                          <SelectItem value="M">Medium (15%)</SelectItem>
-                          <SelectItem value="Q">Quartile (25%)</SelectItem>
-                          <SelectItem value="H">High (30%)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    </>
+                  )}
 
-                    <div className="space-y-2">
-                      <Label>QR Size: {qrSize[0]}px</Label>
-                      <Slider
-                        value={qrSize}
-                        onValueChange={setQrSize}
-                        min={256}
-                        max={2048}
-                        step={64}
-                        className="w-full"
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label>QR Size: {qrSize[0]}px</Label>
+                    <Slider
+                      value={qrSize}
+                      onValueChange={setQrSize}
+                      min={256}
+                      max={1024}
+                      step={64}
+                      className="w-full"
+                    />
+                  </div>
 
-                    <div className="space-y-2">
-                      <Label>Margin: {margin[0]}</Label>
-                      <Slider
-                        value={margin}
-                        onValueChange={setMargin}
-                        min={0}
-                        max={10}
-                        step={1}
-                        className="w-full"
-                      />
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                  <div className="space-y-2">
+                    <Label>Margin: {margin[0]} (Higher = Better scanning)</Label>
+                    <Slider
+                      value={margin}
+                      onValueChange={setMargin}
+                      min={2}
+                      max={10}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
+          {/* Preview Section */}
+          <motion.div 
+            className="space-y-6"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            {/* Generate Button at the Top */}
+            <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
+              <CardContent className="pt-6">
                 <Button
                   onClick={generatePictureQR}
                   disabled={!selectedImage || !getQRContent().trim() || isProcessing}
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 mt-6"
+                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
                   size="lg"
                 >
                   {isProcessing ? (
@@ -1077,15 +1019,7 @@ export const PictureQR: React.FC = () => {
                 </Button>
               </CardContent>
             </Card>
-          </motion.div>
 
-          {/* Preview Section */}
-          <motion.div 
-            className="space-y-6"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
-          >
             <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1107,7 +1041,7 @@ export const PictureQR: React.FC = () => {
                         className="w-full max-w-sm mx-auto rounded-lg border shadow-lg"
                       />
                       <Badge className="mt-2 bg-green-500 text-white">
-                        ✓ Scannable QR Code
+                        ✓ Optimized for Scanning
                       </Badge>
                     </div>
                     
@@ -1158,31 +1092,31 @@ export const PictureQR: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Instructions */}
+            {/* Scanning Tips */}
             <Card className="backdrop-blur-sm bg-card/80 border-2 border-border/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-blue-500" />
-                  Pro Tips
+                  Scanning Success Tips
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
                 <div className="space-y-2">
-                  <h4 className="font-medium text-foreground">📸 Best Images</h4>
+                  <h4 className="font-medium text-foreground">✅ For Best Results</h4>
                   <ul className="space-y-1 ml-4">
-                    <li>• High contrast photos work best</li>
-                    <li>• Face photos are ideal for personal QRs</li>
-                    <li>• Avoid very dark or very light images</li>
-                    <li>• Square aspect ratio recommended</li>
+                    <li>• Use high error correction (Q or H)</li>
+                    <li>• Keep opacity below 60%</li>
+                    <li>• Use high contrast images</li>
+                    <li>• Test scan before printing</li>
                   </ul>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium text-foreground">🎨 Optimization</h4>
+                  <h4 className="font-medium text-foreground">📱 Scanning</h4>
                   <ul className="space-y-1 ml-4">
-                    <li>• Adjust opacity for better scannability</li>
-                    <li>• Use higher error correction for complex images</li>
-                    <li>• Test different blend modes</li>
-                    <li>• Increase contrast for better results</li>
+                    <li>• Hold camera 6-12 inches away</li>
+                    <li>• Ensure good lighting</li>
+                    <li>• Keep camera steady</li>
+                    <li>• Try different QR scanner apps if needed</li>
                   </ul>
                 </div>
               </CardContent>
@@ -1198,7 +1132,7 @@ export const PictureQR: React.FC = () => {
               <span className="font-semibold text-lg">Picture QR Studio</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Part of <Link to="/" className="text-orange-500 hover:underline font-medium">Quantum QR</Link> Suite
+              Part of <Link to="/" className="text-orange-500 hover:underline font-medium">Quantum QR</Link> Suite - Powered by <a href="https://anwe.sh" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:underline font-medium">anwe.sh</a>
             </p>
             <p className="text-xs text-muted-foreground">
               © 2025 Quantum QR. Professional QR solutions, free forever.
