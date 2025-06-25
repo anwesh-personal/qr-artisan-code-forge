@@ -76,16 +76,16 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
     }
   };
 
-  const handleSetData = () => {
+  const handleSetQRContent = () => {
     let content = '';
     let type = activeTab;
 
     switch (activeTab) {
       case 'url':
-        content = urlInput;
+        content = urlInput.trim();
         break;
       case 'text':
-        content = textInput;
+        content = textInput.trim();
         break;
       case 'file':
         content = fileContent;
@@ -110,6 +110,8 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
         break;
     }
 
+    console.log('Setting QR content:', { content, type });
+    
     if (content.trim()) {
       onGenerate(content, type);
     }
@@ -118,9 +120,9 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
   const getContent = () => {
     switch (activeTab) {
       case 'url':
-        return urlInput;
+        return urlInput.trim();
       case 'text':
-        return textInput;
+        return textInput.trim();
       case 'file':
         return fileContent;
       case 'contact':
@@ -154,14 +156,14 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 gap-1 h-auto p-1">
+        <TabsList className="grid grid-cols-2 gap-1 h-auto p-1 bg-purple-50 dark:bg-purple-950/30">
           {tabsConfig.map((tab) => {
             const Icon = tab.icon;
             return (
               <TabsTrigger 
                 key={tab.id} 
                 value={tab.id} 
-                className="flex items-center gap-1 text-xs px-2 py-1"
+                className="flex items-center gap-1 text-xs px-2 py-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white transition-all duration-300 hover:bg-purple-100 dark:hover:bg-purple-900/50"
               >
                 <Icon className="w-3 h-3" />
                 {tab.label}
@@ -171,33 +173,33 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
         </TabsList>
 
         <TabsContent value="url" className="space-y-3">
-          <Label htmlFor="url">Website URL</Label>
+          <Label htmlFor="url" className="text-sm font-semibold">Website URL</Label>
           <Input
             id="url"
             placeholder="https://example.com"
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
-            className="text-base"
+            className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
           />
         </TabsContent>
 
         <TabsContent value="text" className="space-y-3">
-          <Label htmlFor="text">Text Content</Label>
+          <Label htmlFor="text" className="text-sm font-semibold">Text Content</Label>
           <Textarea
             id="text"
             placeholder="Enter any text..."
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
             rows={4}
-            className="text-base"
+            className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
           />
         </TabsContent>
 
         <TabsContent value="file" className="space-y-3">
-          <Label>Upload File</Label>
-          <Card className="border-dashed border-2 p-4">
+          <Label className="text-sm font-semibold">Upload File</Label>
+          <Card className="border-dashed border-2 border-purple-300 dark:border-purple-600 p-4 hover:border-purple-500 transition-colors duration-300">
             <div className="text-center">
-              <Upload className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-muted-foreground" />
+              <Upload className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-purple-500" />
               <Input
                 type="file"
                 onChange={handleFileUpload}
@@ -205,12 +207,12 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
                 id="file-upload"
               />
               <Label htmlFor="file-upload" className="cursor-pointer">
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" size="sm" asChild className="hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-colors duration-300">
                   <span>Choose File</span>
                 </Button>
               </Label>
               {fileName && (
-                <p className="text-sm text-muted-foreground mt-2">
+                <p className="text-sm text-muted-foreground mt-2 font-medium">
                   Selected: {fileName}
                 </p>
               )}
@@ -221,78 +223,78 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
         <TabsContent value="contact" className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label htmlFor="firstName">First Name</Label>
+              <Label htmlFor="firstName" className="text-sm font-semibold">First Name</Label>
               <Input
                 id="firstName"
                 value={contact.firstName}
                 onChange={(e) => setContact({ ...contact, firstName: e.target.value })}
-                className="text-base"
+                className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
               />
             </div>
             <div>
-              <Label htmlFor="lastName">Last Name</Label>
+              <Label htmlFor="lastName" className="text-sm font-semibold">Last Name</Label>
               <Input
                 id="lastName"
                 value={contact.lastName}
                 onChange={(e) => setContact({ ...contact, lastName: e.target.value })}
-                className="text-base"
+                className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
               />
             </div>
           </div>
           <div>
-            <Label htmlFor="phone">Phone</Label>
+            <Label htmlFor="phone" className="text-sm font-semibold">Phone</Label>
             <Input
               id="phone"
               value={contact.phone}
               onChange={(e) => setContact({ ...contact, phone: e.target.value })}
-              className="text-base"
+              className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
             />
           </div>
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-sm font-semibold">Email</Label>
             <Input
               id="email"
               type="email"
               value={contact.email}
               onChange={(e) => setContact({ ...contact, email: e.target.value })}
-              className="text-base"
+              className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
             />
           </div>
           <div>
-            <Label htmlFor="organization">Organization</Label>
+            <Label htmlFor="organization" className="text-sm font-semibold">Organization</Label>
             <Input
               id="organization"
               value={contact.organization}
               onChange={(e) => setContact({ ...contact, organization: e.target.value })}
-              className="text-base"
+              className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
             />
           </div>
         </TabsContent>
 
         <TabsContent value="wifi" className="space-y-3">
           <div>
-            <Label htmlFor="ssid">Network Name (SSID)</Label>
+            <Label htmlFor="ssid" className="text-sm font-semibold">Network Name (SSID)</Label>
             <Input
               id="ssid"
               value={wifi.ssid}
               onChange={(e) => setWifi({ ...wifi, ssid: e.target.value })}
-              className="text-base"
+              className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
             />
           </div>
           <div>
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-sm font-semibold">Password</Label>
             <Input
               id="password"
               type="password"
               value={wifi.password}
               onChange={(e) => setWifi({ ...wifi, password: e.target.value })}
-              className="text-base"
+              className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
             />
           </div>
           <div>
-            <Label htmlFor="security">Security Type</Label>
+            <Label htmlFor="security" className="text-sm font-semibold">Security Type</Label>
             <Select value={wifi.security} onValueChange={(value: 'WPA' | 'WEP' | 'nopass') => setWifi({ ...wifi, security: value })}>
-              <SelectTrigger>
+              <SelectTrigger className="border-purple-200 dark:border-purple-700 focus:border-purple-500">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -306,40 +308,40 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
 
         <TabsContent value="upi" className="space-y-3">
           <div>
-            <Label htmlFor="payeeId">UPI ID</Label>
+            <Label htmlFor="payeeId" className="text-sm font-semibold">UPI ID</Label>
             <Input
               id="payeeId"
               placeholder="username@upi"
               value={upi.payeeId}
               onChange={(e) => setUpi({ ...upi, payeeId: e.target.value })}
-              className="text-base"
+              className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
             />
           </div>
           <div>
-            <Label htmlFor="payeeName">Payee Name</Label>
+            <Label htmlFor="payeeName" className="text-sm font-semibold">Payee Name</Label>
             <Input
               id="payeeName"
               value={upi.payeeName}
               onChange={(e) => setUpi({ ...upi, payeeName: e.target.value })}
-              className="text-base"
+              className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label htmlFor="amount">Amount</Label>
+              <Label htmlFor="amount" className="text-sm font-semibold">Amount</Label>
               <Input
                 id="amount"
                 type="number"
                 step="0.01"
                 value={upi.amount}
                 onChange={(e) => setUpi({ ...upi, amount: e.target.value })}
-                className="text-base"
+                className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
               />
             </div>
             <div>
-              <Label htmlFor="currency">Currency</Label>
+              <Label htmlFor="currency" className="text-sm font-semibold">Currency</Label>
               <Select value={upi.currency} onValueChange={(value) => setUpi({ ...upi, currency: value })}>
-                <SelectTrigger>
+                <SelectTrigger className="border-purple-200 dark:border-purple-700 focus:border-purple-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -351,66 +353,66 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
             </div>
           </div>
           <div>
-            <Label htmlFor="note">Note</Label>
+            <Label htmlFor="note" className="text-sm font-semibold">Note</Label>
             <Input
               id="note"
               value={upi.note}
               onChange={(e) => setUpi({ ...upi, note: e.target.value })}
-              className="text-base"
+              className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
             />
           </div>
         </TabsContent>
 
         <TabsContent value="sms" className="space-y-3">
           <div>
-            <Label htmlFor="smsPhone">Phone Number</Label>
+            <Label htmlFor="smsPhone" className="text-sm font-semibold">Phone Number</Label>
             <Input
               id="smsPhone"
               value={sms.phone}
               onChange={(e) => setSms({ ...sms, phone: e.target.value })}
-              className="text-base"
+              className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
             />
           </div>
           <div>
-            <Label htmlFor="smsMessage">Message</Label>
+            <Label htmlFor="smsMessage" className="text-sm font-semibold">Message</Label>
             <Textarea
               id="smsMessage"
               value={sms.message}
               onChange={(e) => setSms({ ...sms, message: e.target.value })}
               rows={3}
-              className="text-base"
+              className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
             />
           </div>
         </TabsContent>
 
         <TabsContent value="email" className="space-y-3">
           <div>
-            <Label htmlFor="emailTo">To</Label>
+            <Label htmlFor="emailTo" className="text-sm font-semibold">To</Label>
             <Input
               id="emailTo"
               type="email"
               value={email.to}
               onChange={(e) => setEmail({ ...email, to: e.target.value })}
-              className="text-base"
+              className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
             />
           </div>
           <div>
-            <Label htmlFor="emailSubject">Subject</Label>
+            <Label htmlFor="emailSubject" className="text-sm font-semibold">Subject</Label>
             <Input
               id="emailSubject"
               value={email.subject}
               onChange={(e) => setEmail({ ...email, subject: e.target.value })}
-              className="text-base"
+              className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
             />
           </div>
           <div>
-            <Label htmlFor="emailBody">Body</Label>
+            <Label htmlFor="emailBody" className="text-sm font-semibold">Body</Label>
             <Textarea
               id="emailBody"
               value={email.body}
               onChange={(e) => setEmail({ ...email, body: e.target.value })}
               rows={3}
-              className="text-base"
+              className="text-base border-purple-200 dark:border-purple-700 focus:border-purple-500 transition-colors duration-300"
             />
           </div>
         </TabsContent>
@@ -418,8 +420,8 @@ export const QRInput: React.FC<QRInputProps> = ({ onGenerate, isLoading }) => {
 
       {hasContent && (
         <Button 
-          onClick={handleSetData}
-          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold" 
+          onClick={handleSetQRContent}
+          className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold shadow-lg hover:shadow-emerald-500/25 transition-all duration-300" 
           disabled={isLoading}
         >
           Set QR Content
