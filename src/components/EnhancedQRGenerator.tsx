@@ -127,6 +127,7 @@ export const EnhancedQRGenerator: React.FC = () => {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
+  // Fixed: Remove problematic external logo that causes CORS issues
   const defaultOptions: QROptions = {
     errorCorrectionLevel: 'M',
     margin: 4,
@@ -135,7 +136,6 @@ export const EnhancedQRGenerator: React.FC = () => {
       light: '#FFFFFF',
     },
     width: 512,
-    logo: 'https://anwe.sh/work/ologo.png',
   };
 
   const [customization, setCustomization] = useState(defaultOptions);
@@ -204,6 +204,7 @@ export const EnhancedQRGenerator: React.FC = () => {
       console.log('Generating QR with content:', qrContent.content);
       console.log('Using customization:', customization);
       
+      // Generate QR code without external logo to avoid CORS issues
       const qrCode = await generateQRCode(qrContent.content, customization);
       
       // Always add watermark with branding
@@ -232,7 +233,7 @@ export const EnhancedQRGenerator: React.FC = () => {
 
       toast({
         title: "✨ QR Code Generated!",
-        description: "Your branded QR code is ready for download",
+        description: "Your QR code is ready for download",
       });
     } catch (error) {
       console.error('Error generating QR code:', error);
@@ -299,55 +300,20 @@ export const EnhancedQRGenerator: React.FC = () => {
     }
   };
 
-  // Simplified animation variants without problematic ease strings
-  const containerVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.8,
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: {
-        duration: 0.6
-      }
-    }
-  };
-
-  const cardHoverVariants = {
-    hover: {
-      scale: 1.02,
-      y: -4,
-      boxShadow: theme === 'dark' 
-        ? "0 20px 40px rgba(139, 92, 246, 0.3)" 
-        : "0 20px 40px rgba(0, 0, 0, 0.1)",
-      transition: {
-        duration: 0.3
-      }
-    }
-  };
-
   return (
     <motion.div 
       className="min-h-screen bg-gradient-to-br from-background via-background/90 to-purple-50/20 dark:to-purple-950/20"
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8 }}
     >
       <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
         {/* Enhanced Header with Better Typography */}
         <motion.div 
           className="mb-8 text-center relative"
-          variants={itemVariants}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
         >
           <div className="absolute top-0 right-0 flex items-center gap-2 sm:gap-4">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -400,7 +366,9 @@ export const EnhancedQRGenerator: React.FC = () => {
           
           <motion.p 
             className="text-lg sm:text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-6 font-medium tracking-wide"
-            variants={itemVariants}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
             style={{
               fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
             }}
@@ -412,7 +380,9 @@ export const EnhancedQRGenerator: React.FC = () => {
         {/* Enhanced Features Grid with Animations */}
         <motion.div 
           className="mb-8"
-          variants={itemVariants}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
         >
           <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-center bg-gradient-to-r from-slate-900 to-slate-600 dark:from-slate-100 dark:to-slate-400 bg-clip-text text-transparent">Professional Features</h2>
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4">
@@ -460,7 +430,11 @@ export const EnhancedQRGenerator: React.FC = () => {
 
         {/* Enhanced Main Tabs */}
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
-          <motion.div variants={itemVariants}>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
             <TabsList className="grid w-full grid-cols-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-purple-200 dark:border-purple-800">
               <TabsTrigger value="generator" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-medium transition-all duration-300 data-[state=active]:bg-purple-600 data-[state=active]:text-white">
                 <QrCode className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -486,11 +460,19 @@ export const EnhancedQRGenerator: React.FC = () => {
               {/* Enhanced Input Section */}
               <motion.div 
                 className="lg:col-span-1 space-y-4 sm:space-y-6"
-                variants={itemVariants}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
               >
                 <motion.div
-                  variants={cardHoverVariants}
-                  whileHover="hover"
+                  whileHover={{
+                    scale: 1.02,
+                    y: -4,
+                    boxShadow: theme === 'dark' 
+                      ? "0 20px 40px rgba(139, 92, 246, 0.3)" 
+                      : "0 20px 40px rgba(0, 0, 0, 0.1)",
+                    transition: { duration: 0.3 }
+                  }}
                 >
                   <Card className="backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-2 border-purple-200/50 dark:border-purple-700/50 shadow-xl transition-all duration-300">
                     <CardHeader className="pb-3">
@@ -521,8 +503,14 @@ export const EnhancedQRGenerator: React.FC = () => {
                     >
                       <Collapsible open={showCustomization} onOpenChange={setShowCustomization}>
                         <motion.div
-                          variants={cardHoverVariants}
-                          whileHover="hover"
+                          whileHover={{
+                            scale: 1.02,
+                            y: -4,
+                            boxShadow: theme === 'dark' 
+                              ? "0 20px 40px rgba(139, 92, 246, 0.3)" 
+                              : "0 20px 40px rgba(0, 0, 0, 0.1)",
+                            transition: { duration: 0.3 }
+                          }}
                         >
                           <Card className="backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-2 border-purple-200/50 dark:border-purple-700/50 shadow-xl transition-all duration-300">
                             <CollapsibleTrigger asChild>
@@ -612,11 +600,19 @@ export const EnhancedQRGenerator: React.FC = () => {
               {/* Enhanced Preview Section */}
               <motion.div 
                 className="lg:col-span-2 space-y-4 sm:space-y-6"
-                variants={itemVariants}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
               >
                 <motion.div
-                  variants={cardHoverVariants}
-                  whileHover="hover"
+                  whileHover={{
+                    scale: 1.02,
+                    y: -4,
+                    boxShadow: theme === 'dark' 
+                      ? "0 20px 40px rgba(139, 92, 246, 0.3)" 
+                      : "0 20px 40px rgba(0, 0, 0, 0.1)",
+                    transition: { duration: 0.3 }
+                  }}
                 >
                   <Card className="backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-2 border-purple-200/50 dark:border-purple-700/50 shadow-xl h-fit transition-all duration-300">
                     <CardHeader className="pb-3">
@@ -637,8 +633,14 @@ export const EnhancedQRGenerator: React.FC = () => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      variants={cardHoverVariants}
-                      whileHover="hover"
+                      whileHover={{
+                        scale: 1.02,
+                        y: -4,
+                        boxShadow: theme === 'dark' 
+                          ? "0 20px 40px rgba(139, 92, 246, 0.3)" 
+                          : "0 20px 40px rgba(0, 0, 0, 0.1)",
+                        transition: { duration: 0.3 }
+                      }}
                     >
                       <Card className="backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-2 border-purple-200/50 dark:border-purple-700/50 shadow-xl transition-all duration-300">
                         <CardHeader className="pb-3">
@@ -659,11 +661,19 @@ export const EnhancedQRGenerator: React.FC = () => {
               {/* Enhanced Analytics & History Section */}
               <motion.div 
                 className="lg:col-span-1 space-y-4 sm:space-y-6"
-                variants={itemVariants}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
               >
                 <motion.div
-                  variants={cardHoverVariants}
-                  whileHover="hover"
+                  whileHover={{
+                    scale: 1.02,
+                    y: -4,
+                    boxShadow: theme === 'dark' 
+                      ? "0 20px 40px rgba(139, 92, 246, 0.3)" 
+                      : "0 20px 40px rgba(0, 0, 0, 0.1)",
+                    transition: { duration: 0.3 }
+                  }}
                 >
                   <Card className="backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-2 border-purple-200/50 dark:border-purple-700/50 shadow-xl transition-all duration-300">
                     <CardHeader className="pb-3">
@@ -679,8 +689,14 @@ export const EnhancedQRGenerator: React.FC = () => {
                 </motion.div>
 
                 <motion.div
-                  variants={cardHoverVariants}
-                  whileHover="hover"
+                  whileHover={{
+                    scale: 1.02,
+                    y: -4,
+                    boxShadow: theme === 'dark' 
+                      ? "0 20px 40px rgba(139, 92, 246, 0.3)" 
+                      : "0 20px 40px rgba(0, 0, 0, 0.1)",
+                    transition: { duration: 0.3 }
+                  }}
                 >
                   <Card className="backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-2 border-purple-200/50 dark:border-purple-700/50 shadow-xl transition-all duration-300">
                     <CardHeader className="pb-3">
@@ -718,8 +734,14 @@ export const EnhancedQRGenerator: React.FC = () => {
 
           <TabsContent value="gallery">
             <motion.div
-              variants={cardHoverVariants}
-              whileHover="hover"
+              whileHover={{
+                scale: 1.02,
+                y: -4,
+                boxShadow: theme === 'dark' 
+                  ? "0 20px 40px rgba(139, 92, 246, 0.3)" 
+                  : "0 20px 40px rgba(0, 0, 0, 0.1)",
+                transition: { duration: 0.3 }
+              }}
             >
               <Card className="backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-2 border-purple-200/50 dark:border-purple-700/50 shadow-xl p-4 sm:p-8 transition-all duration-300">
                 <CardContent className="text-center space-y-4">
@@ -754,7 +776,9 @@ export const EnhancedQRGenerator: React.FC = () => {
         {/* Enhanced Footer */}
         <motion.footer 
           className="mt-16 py-8 border-t border-purple-200/50 dark:border-purple-700/50"
-          variants={itemVariants}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
         >
           <div className="text-center space-y-4">
             <motion.div 
