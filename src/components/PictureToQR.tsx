@@ -18,9 +18,11 @@ import {
   Download,
   Sparkles,
   AlertCircle,
-  StopCircle
+  StopCircle,
+  Edit
 } from 'lucide-react';
 import { QROptions, generateQRCode } from '@/utils/qrGenerator';
+import { PictureEditor } from './PictureEditor';
 import { useToast } from '@/hooks/use-toast';
 
 interface PictureToQRProps {
@@ -37,6 +39,8 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
   const [processedQR, setProcessedQR] = useState<string>('');
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
+  const [editingImage, setEditingImage] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -57,7 +61,8 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
-        setSelectedImage(result);
+        setEditingImage(result);
+        setShowEditor(true);
         setShowCamera(false);
       };
       reader.readAsDataURL(file);
@@ -74,13 +79,11 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
         }
       };
 
-      // Try different camera access methods for cross-platform compatibility
       let stream: MediaStream;
       
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } else {
-        // Fallback for older browsers
         const getUserMedia = (navigator as any).getUserMedia || 
                             (navigator as any).webkitGetUserMedia || 
                             (navigator as any).mozGetUserMedia;
@@ -135,22 +138,20 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
         return;
       }
 
-      // Set canvas dimensions to match video
       canvas.width = video.videoWidth || video.clientWidth;
       canvas.height = video.videoHeight || video.clientHeight;
 
-      // Draw the current frame
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       
-      // Convert to data URL
       const imageData = canvas.toDataURL('image/png');
-      setSelectedImage(imageData);
+      setEditingImage(imageData);
+      setShowEditor(true);
       
       stopCamera();
       
       toast({
         title: "📸 Photo Captured!",
-        description: "Photo captured successfully. Now add your QR content below.",
+        description: "Now you can edit your photo before creating QR code",
       });
     }
   };
@@ -164,6 +165,29 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
       videoRef.current.srcObject = null;
     }
     setShowCamera(false);
+  };
+
+  const handleEditorSave = (editedImage: string) => {
+    setSelectedImage(editedImage);
+    setShowEditor(false);
+    setEditingImage('');
+    
+    toast({
+      title: "✨ Image Ready!",
+      description: "Your edited image is ready. Now add QR content below.",
+    });
+  };
+
+  const handleEditorCancel = () => {
+    setShowEditor(false);
+    setEditingImage('');
+  };
+
+  const openEditor = () => {
+    if (selectedImage) {
+      setEditingImage(selectedImage);
+      setShowEditor(true);
+    }
   };
 
   const generatePictureQR = async () => {
@@ -181,17 +205,14 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
     try {
       console.log('Starting picture QR generation...');
       
-      // First generate the base QR code
       const baseQR = await generateQRCode(qrContent, customization);
       console.log('Base QR generated');
       
-      // Then blend it with the selected image
       const blendedQR = await blendImageWithQR(selectedImage, baseQR);
       console.log('Blending completed');
       
       setProcessedQR(blendedQR);
       
-      // Call the parent generate function
       onGenerate(qrContent, 'picture');
       
       toast({
@@ -238,21 +259,16 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
         try {
           console.log('Processing images...');
           
-          // Set canvas size to QR code dimensions
           canvas.width = qrImg.width;
           canvas.height = qrImg.height;
 
-          // Draw the QR code first as base
           ctx.drawImage(qrImg, 0, 0);
 
-          // Create a copy of the QR code for masking
           const qrImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const qrPixels = qrImageData.data;
 
-          // Clear canvas and draw image first
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           
-          // Draw the image, scaled to fit the QR code
           const aspectRatio = img.width / img.height;
           const qrAspectRatio = qrImg.width / qrImg.height;
           
@@ -272,23 +288,19 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
 
           ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
 
-          // Get the image data
           const blendedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const blendedPixels = blendedImageData.data;
 
-          // Blend the QR code pattern with the image
           for (let i = 0; i < qrPixels.length; i += 4) {
-            const qrIsBlack = qrPixels[i] < 128; // QR black modules
+            const qrIsBlack = qrPixels[i] < 128;
             
             if (qrIsBlack) {
-              // Apply darkening to image pixels where QR is black
-              blendedPixels[i] = Math.floor(blendedPixels[i] * (1 - overlayOpacity[0])); // R
-              blendedPixels[i + 1] = Math.floor(blendedPixels[i + 1] * (1 - overlayOpacity[0])); // G
-              blendedPixels[i + 2] = Math.floor(blendedPixels[i + 2] * (1 - overlayOpacity[0])); // B
+              blendedPixels[i] = Math.floor(blendedPixels[i] * (1 - overlayOpacity[0]));
+              blendedPixels[i + 1] = Math.floor(blendedPixels[i + 1] * (1 - overlayOpacity[0]));
+              blendedPixels[i + 2] = Math.floor(blendedPixels[i + 2] * (1 - overlayOpacity[0]));
             }
           }
 
-          // Put the blended image data back
           ctx.putImageData(blendedImageData, 0, 0);
 
           console.log('Blending completed successfully');
@@ -317,7 +329,6 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
         reject(new Error('Failed to load QR code'));
       };
 
-      // Start loading images
       img.src = imageDataUrl;
       qrImg.src = qrDataUrl;
     });
@@ -350,7 +361,7 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
           Picture to QR Code
         </h2>
         <p className="text-muted-foreground">
-          Transform your face or any image into a scannable QR code
+          Transform your face or any image into a scannable QR code with advanced editing
         </p>
       </motion.div>
 
@@ -360,7 +371,7 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Image className="w-5 h-5 text-orange-500" />
-              Image Input
+              Image Input & Editing
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -431,7 +442,18 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
                 animate={{ opacity: 1, scale: 1 }}
                 className="space-y-3"
               >
-                <Label>Selected Image</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Selected Image</Label>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={openEditor}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="w-3 h-3" />
+                    Edit Image
+                  </Button>
+                </div>
                 <div className="relative">
                   <img
                     src={selectedImage}
@@ -552,41 +574,50 @@ export const PictureToQR: React.FC<PictureToQRProps> = ({ onGenerate, customizat
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-blue-500" />
-            How Picture to QR Works
+            Enhanced Picture to QR Features
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <h4 className="font-medium text-foreground mb-2">📸 Image Input</h4>
+              <h4 className="font-medium text-foreground mb-2">📸 Smart Capture</h4>
               <ul className="space-y-1">
                 <li>• Upload from device or use camera</li>
-                <li>• Face photos work best</li>
+                <li>• Face photos work perfectly</li>
                 <li>• Max file size: 5MB</li>
-                <li>• Supports JPG, PNG formats</li>
+                <li>• Auto-opens editor after capture</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-medium text-foreground mb-2">🎨 Blending</h4>
+              <h4 className="font-medium text-foreground mb-2">✂️ Advanced Editor</h4>
               <ul className="space-y-1">
-                <li>• Adjust opacity for visibility</li>
-                <li>• Advanced blending for better results</li>
-                <li>• QR pattern remains scannable</li>
-                <li>• Image overlays QR code</li>
+                <li>• Zoom, crop, and rotate images</li>
+                <li>• Brightness & contrast filters</li>
+                <li>• Saturation adjustments</li>
+                <li>• Real-time preview</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-medium text-foreground mb-2">✅ Results</h4>
+              <h4 className="font-medium text-foreground mb-2">🎨 Perfect Results</h4>
               <ul className="space-y-1">
-                <li>• Fully scannable QR code</li>
-                <li>• Contains your face/image</li>
-                <li>• High-resolution output</li>
-                <li>• Perfect for personal branding</li>
+                <li>• High-quality QR generation</li>
+                <li>• Optimized for scanning</li>
+                <li>• Custom blending options</li>
+                <li>• Professional output</li>
               </ul>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Picture Editor Modal */}
+      {showEditor && editingImage && (
+        <PictureEditor
+          imageSrc={editingImage}
+          onSave={handleEditorSave}
+          onCancel={handleEditorCancel}
+        />
+      )}
     </div>
   );
 };

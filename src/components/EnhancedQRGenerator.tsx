@@ -299,7 +299,7 @@ export const EnhancedQRGenerator: React.FC = () => {
     }
   };
 
-  // Animation variants
+  // Fixed animation variants with proper typing
   const containerVariants = {
     hidden: { opacity: 0, y: 30 },
     visible: {
@@ -308,7 +308,7 @@ export const EnhancedQRGenerator: React.FC = () => {
       transition: {
         duration: 0.8,
         staggerChildren: 0.1,
-        ease: [0.25, 0.46, 0.45, 0.94]
+        ease: "easeOut"
       }
     }
   };
@@ -320,7 +320,7 @@ export const EnhancedQRGenerator: React.FC = () => {
       y: 0,
       transition: {
         duration: 0.6,
-        ease: [0.25, 0.46, 0.45, 0.94]
+        ease: "easeOut"
       }
     }
   };
@@ -334,7 +334,7 @@ export const EnhancedQRGenerator: React.FC = () => {
         : "0 20px 40px rgba(0, 0, 0, 0.1)",
       transition: {
         duration: 0.3,
-        ease: [0.25, 0.46, 0.45, 0.94]
+        ease: "easeOut"
       }
     }
   };
@@ -383,7 +383,7 @@ export const EnhancedQRGenerator: React.FC = () => {
             className="flex items-center justify-center gap-3 mb-4"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 1, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 1, ease: "easeOut" }}
           >
             <motion.h1 
               className="text-4xl sm:text-5xl md:text-7xl font-black bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-500 bg-clip-text text-transparent tracking-tight"
